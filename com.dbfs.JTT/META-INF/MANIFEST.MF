@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: JTT
+Bundle-SymbolicName: com.dbfs.JTT;singleton:=true
+Bundle-Version: 0.0.1
+Bundle-Activator: com.dbfs.jtt.Activator
+Bundle-Vendor: DBFs
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.swift.common.soap;bundle-version="5.0.0";visibility:=reexport,
+ org.eclipse.equinox.security,
+ com.atlassian.jira.restclient;bundle-version="0.5.0"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-ActivationPolicy: lazy

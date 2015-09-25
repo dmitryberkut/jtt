@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         id="application"
+         point="org.eclipse.core.runtime.applications">
+      <application>
+         <run
+               class="com.dbfs.jtt.Application">
+         </run>
+      </application>
+   </extension>
+   <extension
+         point="org.eclipse.ui.perspectives">
+      <perspective
+            name="RCP Perspective"
+            class="com.dbfs.jtt.Perspective"
+            id="com.dbfs.JTT.perspective">
+      </perspective>
+   </extension>
+   <extension
+         id="product"
+         point="org.eclipse.core.runtime.products">
+      <product
+            application="com.dbfs.JTT.application"
+            name="Jira Time Tracker ++">
+         <property
+               name="windowImages"
+               value="icons/alt_window_16.gif,icons/alt_window_32.gif">
+         </property>
+         <property
+               name="appName"
+               value="Jira Time Tracker ++">
+         </property>
+         <property
+               name="preferenceCustomization"
+               value="plugin_customization.ini">
+         </property>
+      </product>
+   </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            class="com.dbfs.jtt.TasksView"
+            id="com.dbfs.JTT.views.tasks"
+            name="Tasks"
+            restorable="true">
+      </view>
+   </extension>
+   <extension
+         id="com_dbfs_JTT"
+         point="org.eclipse.core.runtime.products">
+      <product
+            application="com.dbfs.JTT.application"
+            name="JiraTimeTracker">
+         <property
+               name="appName"
+               value="JiraTimeTracker">
+         </property>
+      </product>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="com.dbfs.jtt.preferences.GeneralPreferencePage"
+            id="com.dbfs.JTT.preferences.general"
+            name="General">
+      </page>
+      <page
+            class="com.dbfs.jtt.preferences.LoggingPreferencePage"
+            id="com.dbfs.JTT.preferences.logging"
+            name="Logging">
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="com.dbfs.jtt.preferences.AbstractPreferenceInitializer">
+      </initializer>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <category
+            id="com.dbfs.JTT.commands"
+            name="Command Category">
+      </category>
+      <command
+            categoryId="com.dbfs.JTT.commands"
+            defaultHandler="org.eclipse.jface.commands.ActionHandler"
+            id="com.dbfs.JTT.preferenceAction"
+            name="Preferance">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.bindings">
+      <key
+            commandId="com.dbfs.JTT.preferenceAction"
+            contextId="org.eclipse.ui.contexts.actionSet"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="M1+M2+P">
+      </key>
+   </extension>
+
+</plugin>
