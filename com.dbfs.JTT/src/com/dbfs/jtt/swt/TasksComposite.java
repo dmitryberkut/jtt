@@ -9,6 +9,10 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
@@ -17,6 +21,7 @@ import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.MouseMoveListener;
+import org.eclipse.swt.events.MouseWheelListener;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.events.VerifyEvent;
@@ -38,6 +43,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.wb.swt.SWTResourceManager;
 
 import com.dbfs.jtt.Activator;
 import com.dbfs.jtt.Application;
@@ -49,12 +55,6 @@ import com.dbfs.jtt.model.Task;
 import com.dbfs.jtt.resources.ColorSchemes;
 import com.dbfs.jtt.resources.IImageKeys;
 import com.dbfs.jtt.util.LogManager;
-
-import org.eclipse.wb.swt.SWTResourceManager;
-import org.eclipse.swt.events.MouseWheelListener;
-import org.swift.common.soap.jira.RemoteException;
-import org.swift.common.soap.jira.RemotePermissionException;
-import org.swift.common.soap.jira.RemoteValidationException;
 
 public class TasksComposite extends Composite {
     private Logger logger = Logger.getLogger(TasksComposite.class.getName());
@@ -130,6 +130,7 @@ public class TasksComposite extends Composite {
     private int stopTextOffsetX;
     private int timeTextOffsetX;
     private Font timeFont;
+    private Font loggedTimeFont;
     private Font linkFont;
     private Font linkParentFont;
     private Font descFont;
@@ -148,15 +149,6 @@ public class TasksComposite extends Composite {
     Point [] offset = new Point [1];
     private static Task activeTask;
     private static boolean stopped;
-    private long startedTime;
-    private long currentTime;
-    
-    
-    Runnable timer = new Runnable() {
-        public void run() {
-            timer();
-        }
-    };
 	private TasksView taskView;
 	private DailyTotalCounter dailyTotalCounter;
 
@@ -277,6 +269,7 @@ public class TasksComposite extends Composite {
         }
         stopTextOffsetX = (BTN_TIMER_WIDTH - x) / 2;
         timeFont = new Font(display, "Arial", 8, SWT.BOLD);
+        loggedTimeFont = new Font(display, "Arial", 7, SWT.NORMAL);
         logWorkFont = new Font(display, "Arial", 6, SWT.NORMAL);
         tCompGC.setFont(timeFont);
         x = 0;
@@ -472,52 +465,14 @@ public class TasksComposite extends Composite {
                     if (!isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {
                         return;
                     }
-                    addMouseStatus(MOUSE_OVER_TIMER_BTN);
-                    display.timerExec(-1, timer);
-                    if ( getActiveTask()!=null && !tasks.contains(getActiveTask())){
-                    	showInfoMessage("Info", "You already have started task: "+ getActiveTask().getKey()+", but it is hidden by filters.");
-                    } else if ( getActiveTask()!=null && !getActiveTask().getKey().equalsIgnoreCase(tasks.get(indxUnderCursor).getKey())){
-                        long nowTime = System.currentTimeMillis();
-                        currentTime = nowTime - startedTime;
-                        
-                        //System.out.println("time is: "+Long.valueOf(TimeUnit.MILLISECONDS.toMinutes(getActiveTask().getCurrentTimeSpent()+currentTime)));
-                    	if (TimeUnit.MILLISECONDS.toMinutes(getActiveTask().getCurrentTimeSpent()+currentTime) >= MINIMUM_SPENT_TIME_MINUTES){
-                            MessageBox messageBox = new MessageBox(getShell(), SWT.APPLICATION_MODAL | SWT.YES | SWT.NO | SWT.CANCEL | SWT.ICON_WORKING);
-                            messageBox.setText("Jira Time Tracker");
-                            messageBox.setMessage("Do you want to update worklog for started task?");
-                            int res = messageBox.open();
-                          
-                            if (res == SWT.YES) {
-                            	getActiveTask().setRunning(false);
-                            	drawItem(getActiveTask());
-                            	timer();
-                            	switchTask();
-                            }
-                            if (res == SWT.NO) {
-                            	getActiveTask().setRunning(false);
-                            	drawItem(getActiveTask());
-                            	switchTask();
-                            }
-                            if (res == SWT.CANCEL){
-                            	// NO SWITCH TASK HERE !!!!!
-                            }
-                            
-                    	} else{
-                    		getActiveTask().setRunning(false);
-                    		drawItem(getActiveTask());
-                    		switchTask();
-                    	}
-                    } else {
-        				if (indxRunningItem != -1 && tasks.get(indxRunningItem).isRunning() && indxRunningItem != indxUnderCursor) {
-        				    display.timerExec(-1, timer);
-        				    tasks.get(indxRunningItem).setRunning(false);
-        				    timer();
-        				}
-                    	switchTask();
-                    }
-                    
-                    
-                    timer();
+					addMouseStatus(MOUSE_OVER_TIMER_BTN);
+					if (getActiveTask() != null && !tasks.contains(getActiveTask())) {
+						showInfoMessage("Info", "You already have started task: " + getActiveTask().getKey() + ", but it is hidden by filters.");
+					} else if (isOtherTaskStarted()) {
+						getActiveTask().setRunning(false);
+						drawItem(getActiveTask());
+					}
+					startTimer(indxUnderCursor);
                     drawItem(indxUnderCursor);
                 } else if (e.x > btnLogWorkX && e.x < btnLogWorkX + BTN_LOG_WORK_WIDTH && e.y + scroll > taskItems.get(indxUnderCursor).getBtnLogworkY() && e.y + scroll < taskItems.get(indxUnderCursor).getBtnLogworkY() + BTN_LOG_WORK_HEIGHT) {
                     if (!isMouseStatus(MOUSE_DOWN_LOG_WORK_BTN) || !isLogWorkChanged) {
@@ -538,14 +493,15 @@ public class TasksComposite extends Composite {
                 }
             }
 
-			private void switchTask() {
-				System.out.println("active:"+(getActiveTask()!=null?getActiveTask().getKey():"null")+" indxUnderCursor:"+indxUnderCursor+" key under cursor:"+ tasks.get(indxUnderCursor).getKey());
-				tasks.get(indxUnderCursor).setRunning(!tasks.get(indxUnderCursor).isRunning());
-				if (tasks.get(indxUnderCursor).isRunning()) {
-				    indxRunningItem = indxUnderCursor;
-				    startedTime = System.currentTimeMillis();
-				    setActiveTask(tasks.get(indxUnderCursor));
-				    Application.setStartedTask(true);
+			private void startTimer(int index) {
+				Task task = tasks.get(index);
+				stopped = task.isRunning();
+				task.setRunning(!task.isRunning());
+				if (task.isRunning()) {
+				    indxRunningItem = index;
+				    task.setStartedTimer(System.currentTimeMillis() - task.getCurrentTimeSpent());
+				    setActiveTask(task);
+				    startWork(task);
 				}
 			}
             
@@ -749,7 +705,7 @@ public class TasksComposite extends Composite {
         text.setVisible(false);
         //drawTimeEstimation(indxSelectedItem);
         text.setText("");
-		updateWorklog(tasks.get(indxSelectedItem), millis);
+		updateWorklog(tasks.get(indxSelectedItem));
 		drawItem(localTask);
         dailyTotalCounter.setUserName(this.taskView.getUserName());
         dailyTotalCounter.add(millis);
@@ -941,6 +897,7 @@ public class TasksComposite extends Composite {
     
     
     private void drawTimeEstimation(int indx) {
+    	tCompGC.setFont(loggedTimeFont);
         int startY = 0;
         int startX = 0;
         if (tasks.get(indx).getParentKey() != null) {
@@ -1088,7 +1045,7 @@ public class TasksComposite extends Composite {
             tCompGC.drawText(STOP, btnTimerX + stopTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT) / 2 - scroll, true);
             Font prevFont = tCompGC.getFont();
             tCompGC.setFont(timeFont);
-            tCompGC.drawText(/*TIME_FORMAT*/TimeUnit.MILLISECONDS.toHours(currentTime) + ":" + formatter.format(new Date(currentTime)), btnTimerX + timeTextOffsetX, taskItems.get(indx).getBtnTimerY() + GRADIENT_OFFSET * 2 - scroll, true);
+            tCompGC.drawText(/*TIME_FORMAT*/TimeUnit.MILLISECONDS.toHours(tasks.get(indx).getCurrentTimeSpent()) + ":" + formatter.format(new Date(tasks.get(indx).getCurrentTimeSpent())), btnTimerX + timeTextOffsetX, taskItems.get(indx).getBtnTimerY() + GRADIENT_OFFSET * 2 - scroll, true);
             tCompGC.setFont(prevFont);
         }
         redraw(btnTimerX, taskItems.get(indx).getBtnTimerY() - scroll, btnTimerX + BTN_TIMER_WIDTH, taskItems.get(indx).getBtnTimerY() + BTN_TIMER_HEIGHT, false);
@@ -1252,25 +1209,17 @@ public class TasksComposite extends Composite {
         }
     }
     
-    protected void updateWorklog(Task task, long millisis) {
-        try {
-            SOAPSession.getInstance().updateWorklog(task, millisis);
-            //drawTimeEstimation(tasks.indexOf(task));
-            drawItem(tasks.indexOf(task));
-        } catch (RemotePermissionException e) {
-            logger.error(e.getMessage());
-            LogManager.logStack(e);
-        } catch (RemoteValidationException e) {
-            logger.error(e.getMessage());
-            LogManager.logStack(e);
-        } catch (RemoteException e) {
-            logger.error(e.getMessage());
-            LogManager.logStack(e);
-        } catch (java.rmi.RemoteException e) {
-            logger.error(e.getMessage());
-            LogManager.logStack(e);
-        }
-    }
+	protected void updateWorklog(Task task) {
+		try {
+			logger.debug("Time is logged: " + Task.millisecondsToDHM(task.getCurrentTimeSpent()));
+			SOAPSession.getInstance().updateWorklog(task);
+			// drawTimeEstimation(tasks.indexOf(task));
+			drawItem(tasks.indexOf(task));
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+			LogManager.logStack(e);
+		}
+	}
     
     public static void updateWorklog() {
         if (getActiveTask() == null) {
@@ -1288,10 +1237,79 @@ public class TasksComposite extends Composite {
     }
     
 	private void setActiveTask(Task activeTask) {
-		this.activeTask = activeTask;
+		TasksComposite.activeTask = activeTask;
+		Application.setStartedTask(activeTask == null ? false : true);
+	}
+	
+	/*** New method doesn't block UI ***/
+	private void startWork(final Task task) {
+		//final String key = tasks.get(indxUnderCursor).getKey();
+		Job job = new Job("Logging Work for " + task.getKey()) {
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				while (!stopped && task.getKey().equalsIgnoreCase(getActiveTask().getKey())) {
+					// TODO Need to avoid search object in collection every second!!!
+					if (!tasks.contains(getActiveTask())) {
+						break;
+					}
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						LogManager.logStack(e);
+					}
+					long nowTime = System.currentTimeMillis();
+					task.setCurrentTimeSpent(nowTime - task.getStartedTimer());
+					Display.getDefault().asyncExec(new Runnable() {
+						public void run() {
+							drawBtnStart(indxRunningItem);
+						}
+					});
+					/*if (offset[0] != null && indxRunningItem != indxSelectedItem) {
+						Display.getDefault().asyncExec(new Runnable() {
+							public void run() {
+								drawItem(indxSelectedItem);
+							}
+						});
+					}*/
+				}
+				// TODO WTF? setUserName every second?
+				dailyTotalCounter.setUserName(taskView.getUserName());
+				prepareAndLogTime(task);
+				if (task.getKey().equalsIgnoreCase(getActiveTask().getKey())) {
+					setActiveTask(null);
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+		// job.setUser(true);
+		job.schedule();
+	}
+	
+	private void prepareAndLogTime(final Task task) {
+		if (!task.isRunning()) {
+			dailyTotalCounter.add(task.getCurrentTimeSpent());
+			drawDailyTime();
+			Display.getDefault().asyncExec(new Runnable() {
+				public void run() {
+					drawItem(tasks.indexOf(task));
+				}
+			});
+			if (TimeUnit.MILLISECONDS.toMinutes(task.getCurrentTimeSpent()) >= MINIMUM_SPENT_TIME_MINUTES) {
+				updateWorklog(task);
+			}
+			Display.getDefault().asyncExec(new Runnable() {
+				public void run() {
+					drawItem(tasks.indexOf(task));
+					if (getActiveTask() == null || task.getKey().equalsIgnoreCase(getActiveTask().getKey())) {
+						indxRunningItem = -1;
+					}
+				}
+			});
+		}
 	}
     
-    private void timer() {
+    /*private void timer() {
         if (display == null || display.isDisposed() || stopped) {
             if (stopped) {
                 stopped = false;
@@ -1337,12 +1355,16 @@ public class TasksComposite extends Composite {
             setActiveTask(null);
             Application.setStartedTask(false);
         }
-    }
+    }*/
     
     
 
 	private void drawDailyTime() {
-		this.taskView.setDeilyTime(dailyTotalCounter.getString());
+		Display.getDefault().asyncExec(new Runnable() {
+			public void run() {
+				taskView.setDeilyTime(dailyTotalCounter.getString());
+			}
+		});
 	}
 	
 	private void showErrorMessage(String title, String msg) {
@@ -1358,6 +1380,10 @@ public class TasksComposite extends Composite {
         messageBox.setText(title);
         messageBox.setMessage(msg);
         messageBox.open();
+	}
+	
+	private boolean isOtherTaskStarted() {
+		return getActiveTask() != null && !getActiveTask().getKey().equalsIgnoreCase(tasks.get(indxUnderCursor).getKey());
 	}
 
 }
