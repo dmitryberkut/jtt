@@ -17,6 +17,9 @@ public class ColorSchemes {
     public static Color taskStopColor = Display.getCurrent().getSystemColor(SWT.COLOR_RED);
     public static Color taskStopTextColor = Display.getCurrent().getSystemColor(SWT.COLOR_WHITE);
     public static Color taskStopGradientColor = Display.getCurrent().getSystemColor(SWT.COLOR_DARK_RED);
+	public static Color taskMiniBtnTColor = Display.getCurrent().getSystemColor(SWT.COLOR_GREEN);
+	public static Color taskMiniBtnBorderColor = Display.getCurrent().getSystemColor(SWT.COLOR_BLACK);
+	public static Color taskMiniBtnTGradientColor = Display.getCurrent().getSystemColor(SWT.COLOR_DARK_GREEN);
     public static Color taskSelectedColor = Display.getCurrent().getSystemColor(SWT.COLOR_BLUE);
     public static Color timeOverTextColor = new Color(Display.getCurrent(), 237, 80, 7);
     public static Color time2OverTextColor = Display.getCurrent().getSystemColor(SWT.COLOR_RED);

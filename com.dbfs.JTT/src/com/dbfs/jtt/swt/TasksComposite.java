@@ -81,6 +81,8 @@ public class TasksComposite extends Composite {
     private final static int MOUSE_OVER_PARENT_LINK = 8192;
     private final static int MOUSE_DOWN_PARENT_LINK = 16384;
     private final static int MOUSE_UP_PARENT_LINK = 32768;
+	private final static int MOUSE_OVER_MINI_BTN = 65536;
+	private final static int MOUSE_DOWN_MINI_BTN = 131072;
     
     private GC tCompGC;
     private Image imageTasks;
@@ -410,7 +412,15 @@ public class TasksComposite extends Composite {
                     addMouseStatus(MOUSE_DOWN_LINK);
                     indxSelectedItem = indxUnderCursor;
                 } else if (e.x > btnTimerX && e.x < btnTimerX + BTN_TIMER_WIDTH && e.y + scroll > taskItems.get(indxUnderCursor).getBtnTimerY() && e.y + scroll < taskItems.get(indxUnderCursor).getBtnTimerY() + BTN_TIMER_HEIGHT) {
-                    addMouseStatus(MOUSE_DOWN_TIMER_BTN);
+					int widthMiniBtn = BTN_TIMER_WIDTH * 10 / 25;
+					int heightMiniBtn = BTN_TIMER_HEIGHT * 10 / 25;
+					int xMiniBtn = BTN_TIMER_WIDTH - widthMiniBtn;
+					int yMiniBtn = BTN_TIMER_HEIGHT - heightMiniBtn;
+					if (e.x > btnTimerX + xMiniBtn && e.x < btnTimerX + xMiniBtn + widthMiniBtn && e.y + scroll > taskItems.get(indxUnderCursor).getBtnTimerY() + yMiniBtn && e.y + scroll < taskItems.get(indxUnderCursor).getBtnTimerY() + yMiniBtn + heightMiniBtn) {
+						addMouseStatus(MOUSE_DOWN_MINI_BTN);
+					} else {
+						addMouseStatus(MOUSE_DOWN_TIMER_BTN);
+					}
                     indxSelectedItem = indxUnderCursor;
                     drawBtnStart(indxUnderCursor);
                 } else if (!tasks.get(indxUnderCursor).isRunning() && e.x > btnLogWorkX && e.x < btnLogWorkX + BTN_LOG_WORK_WIDTH && e.y + scroll > taskItems.get(indxUnderCursor).getBtnLogworkY() && e.y + scroll < taskItems.get(indxUnderCursor).getBtnLogworkY() + BTN_LOG_WORK_HEIGHT) {
@@ -462,18 +472,29 @@ public class TasksComposite extends Composite {
                         org.eclipse.swt.program.Program.launch(tasks.get(indxUnderCursor).getUrl());
                     }
                 } else if (e.x > btnTimerX && e.x < btnTimerX + BTN_TIMER_WIDTH && e.y + scroll > taskItems.get(indxUnderCursor).getBtnTimerY() && e.y + scroll < taskItems.get(indxUnderCursor).getBtnTimerY() + BTN_TIMER_HEIGHT) {
-                    if (!isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {
-                        return;
-                    }
-					addMouseStatus(MOUSE_OVER_TIMER_BTN);
-					if (getActiveTask() != null && !tasks.contains(getActiveTask())) {
-						showInfoMessage("Info", "You already have started task: " + getActiveTask().getKey() + ", but it is hidden by filters.");
-					} else if (isOtherTaskStarted()) {
-						getActiveTask().setRunning(false);
-						drawItem(getActiveTask());
+					int widthMiniBtn = BTN_TIMER_WIDTH * 10 / 25;
+					int heightMiniBtn = BTN_TIMER_HEIGHT * 10 / 25;
+					int xMiniBtn = BTN_TIMER_WIDTH - widthMiniBtn;
+					int yMiniBtn = BTN_TIMER_HEIGHT - heightMiniBtn;
+					if (e.x > btnTimerX + xMiniBtn && e.x < btnTimerX + xMiniBtn + widthMiniBtn && e.y + scroll > taskItems.get(indxUnderCursor).getBtnTimerY() + yMiniBtn && e.y + scroll < taskItems.get(indxUnderCursor).getBtnTimerY() + yMiniBtn + heightMiniBtn) {
+						if (!isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
+							return;
+						}
+						addMouseStatus(MOUSE_OVER_MINI_BTN);
+					} else {
+						if (!isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {
+							return;
+						}
+						addMouseStatus(MOUSE_OVER_TIMER_BTN);
+						if (getActiveTask() != null && !tasks.contains(getActiveTask())) {
+							showInfoMessage("Info", "You already have started task: " + getActiveTask().getKey() + ", but it is hidden by filters.");
+						} else if (isOtherTaskStarted()) {
+							getActiveTask().setRunning(false);
+							drawItem(getActiveTask());
+						}
+						startTimer(indxUnderCursor);
 					}
-					startTimer(indxUnderCursor);
-                    drawItem(indxUnderCursor);
+					drawItem(indxUnderCursor);
                 } else if (e.x > btnLogWorkX && e.x < btnLogWorkX + BTN_LOG_WORK_WIDTH && e.y + scroll > taskItems.get(indxUnderCursor).getBtnLogworkY() && e.y + scroll < taskItems.get(indxUnderCursor).getBtnLogworkY() + BTN_LOG_WORK_HEIGHT) {
                     if (!isMouseStatus(MOUSE_DOWN_LOG_WORK_BTN) || !isLogWorkChanged) {
                         return;
@@ -539,12 +560,24 @@ public class TasksComposite extends Composite {
                     setCursor(CURSOR_LINK);
                     addMouseStatus(MOUSE_OVER_LINK);
                 } else if (arg.x > btnTimerX && arg.x < btnTimerX + BTN_TIMER_WIDTH && arg.y + scroll > taskItems.get(indxUnderCursor).getBtnTimerY() && arg.y + scroll < taskItems.get(indxUnderCursor).getBtnTimerY() + BTN_TIMER_HEIGHT) {
-                    if (isMouseStatus(MOUSE_DOWN_TIMER_BTN) || isMouseStatus(MOUSE_OVER_TIMER_BTN)) {
-                        return;
-                    }
-                    setCursor(CURSOR_ARROW);
-                    addMouseStatus(MOUSE_OVER_TIMER_BTN);
-                    drawBtnStart(indxUnderCursor);
+					setCursor(CURSOR_ARROW);
+					int widthMiniBtn = BTN_TIMER_WIDTH * 10 / 25;
+					int heightMiniBtn = BTN_TIMER_HEIGHT * 10 / 25;
+					int xMiniBtn = BTN_TIMER_WIDTH - widthMiniBtn;
+					int yMiniBtn = BTN_TIMER_HEIGHT - heightMiniBtn;
+					if (arg.x > btnTimerX + xMiniBtn && arg.x < btnTimerX + xMiniBtn + widthMiniBtn && arg.y + scroll > taskItems.get(indxUnderCursor).getBtnTimerY() + yMiniBtn && arg.y + scroll < taskItems.get(indxUnderCursor).getBtnTimerY() + yMiniBtn + heightMiniBtn) {
+						if (isMouseStatus(MOUSE_DOWN_MINI_BTN) || isMouseStatus(MOUSE_OVER_MINI_BTN)) {
+							return;
+						}
+						addMouseStatus(MOUSE_OVER_MINI_BTN);
+					} else {
+						if (isMouseStatus(MOUSE_DOWN_TIMER_BTN) || isMouseStatus(MOUSE_OVER_TIMER_BTN)) {
+							return;
+						}
+						addMouseStatus(MOUSE_OVER_TIMER_BTN);
+					}
+					drawBtnStart(indxUnderCursor);
+
                 } else if (!tasks.get(indxUnderCursor).isRunning() && arg.x > btnLogWorkX && arg.x < btnLogWorkX + BTN_LOG_WORK_WIDTH && arg.y + scroll > taskItems.get(indxUnderCursor).getBtnLogworkY() && arg.y + scroll < taskItems.get(indxUnderCursor).getBtnLogworkY() + BTN_LOG_WORK_HEIGHT) {
                     if (isMouseStatus(MOUSE_DOWN_LOG_WORK_BTN) || isMouseStatus(MOUSE_OVER_LOG_WORK_BTN)) {
                         return;
@@ -559,7 +592,7 @@ public class TasksComposite extends Composite {
                     setCursor(CURSOR_I);
                     addMouseStatus(MOUSE_OVER_LOG_WORK_TXT);
                 } else {
-                    if (isMouseStatus(MOUSE_OVER_TIMER_BTN) || isMouseStatus(MOUSE_DOWN_TIMER_BTN) || isMouseStatus(MOUSE_OVER_LOG_WORK_BTN) || isMouseStatus(MOUSE_DOWN_LOG_WORK_BTN)) {
+					if (isMouseStatus(MOUSE_OVER_TIMER_BTN) || isMouseStatus(MOUSE_DOWN_TIMER_BTN) || isMouseStatus(MOUSE_OVER_LOG_WORK_BTN) || isMouseStatus(MOUSE_DOWN_LOG_WORK_BTN) || isMouseStatus(MOUSE_OVER_MINI_BTN) || isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
                         addMouseStatus(MOUSE_OVER_ITEM);
                         drawBtnStart(indxUnderCursor);
                         drawBtnLogWork(indxUnderCursor);
@@ -754,6 +787,10 @@ public class TasksComposite extends Composite {
             stat = "MOUSE_DOWN_PARENT_LINK";
         } else if (isMouseStatus(MOUSE_UP_PARENT_LINK)) {
             stat = "MOUSE_UP_PARENT_LINK";
+		} else if (isMouseStatus(MOUSE_OVER_MINI_BTN)) {
+			stat = "MOUSE_OVER_MINI_BTN";
+		} else if (isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
+			stat = "MOUSE_DOWN_MINI_BTN";
         }
         logger.debug(DEBUG_INFO_INDX_MOUSE_STATUS + stat);
     }
@@ -1039,7 +1076,8 @@ public class TasksComposite extends Composite {
         tCompGC.drawRoundRectangle(btnTimerX + 1, taskItems.get(indx).getBtnTimerY() + 1 - scroll, BTN_TIMER_WIDTH - 2, BTN_TIMER_HEIGHT - 2, WIDTH_ARC, WIDTH_ARC);
         tCompGC.setForeground(ColorSchemes.taskStartTextColor);
         if (!tasks.get(indx).isRunning()) {
-            tCompGC.drawText(START, btnTimerX + startTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT - standardTextHeight) / 2 - scroll, true);
+			tCompGC.drawText(START, btnTimerX + startTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT - standardTextHeight) / 3 - scroll, true);
+			// subButton here
         } else {
             tCompGC.setForeground(ColorSchemes.taskStopTextColor);
             tCompGC.drawText(STOP, btnTimerX + stopTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT) / 2 - scroll, true);
@@ -1048,6 +1086,28 @@ public class TasksComposite extends Composite {
             tCompGC.drawText(/*TIME_FORMAT*/TimeUnit.MILLISECONDS.toHours(tasks.get(indx).getCurrentTimeSpent()) + ":" + formatter.format(new Date(tasks.get(indx).getCurrentTimeSpent())), btnTimerX + timeTextOffsetX, taskItems.get(indx).getBtnTimerY() + GRADIENT_OFFSET * 2 - scroll, true);
             tCompGC.setFont(prevFont);
         }
+		/*** Start Draw miniButton ***/
+		int widthMiniBtn = BTN_TIMER_WIDTH * 10 / 25;
+		int heightMiniBtn = BTN_TIMER_HEIGHT * 10 / 25;
+		int xMiniBtn = BTN_TIMER_WIDTH - widthMiniBtn;
+		int yMiniBtn = BTN_TIMER_HEIGHT - heightMiniBtn;
+		boolean vertical = true;
+		if (!isMouseStatus(MOUSE_OVER_MINI_BTN) && !isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
+			tCompGC.setBackground(ColorSchemes.taskMiniBtnTGradientColor);
+			tCompGC.setForeground(ColorSchemes.taskMiniBtnTColor);
+		} else if (isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
+			tCompGC.setBackground(ColorSchemes.taskMiniBtnTColor);
+			tCompGC.setForeground(ColorSchemes.taskMiniBtnTGradientColor);
+		} else if (isMouseStatus(MOUSE_OVER_MINI_BTN)) {
+			vertical = false;
+			tCompGC.setBackground(ColorSchemes.taskMiniBtnTColor);
+			tCompGC.setForeground(ColorSchemes.taskMiniBtnTGradientColor);
+		}
+		tCompGC.fillGradientRectangle(btnTimerX + xMiniBtn + 1, taskItems.get(indx).getBtnTimerY() + yMiniBtn + 1 - scroll, widthMiniBtn - 3, heightMiniBtn - 3, vertical);
+		// tCompGC.fillRoundRectangle(btnTimerX + xMiniBtn, taskItems.get(indx).getBtnTimerY() + yMiniBtn - scroll, widthMiniBtn - 2, heightMiniBtn - 2, WIDTH_ARC, WIDTH_ARC);
+		tCompGC.setForeground(ColorSchemes.taskMiniBtnBorderColor);
+		tCompGC.drawRoundRectangle(btnTimerX + xMiniBtn, taskItems.get(indx).getBtnTimerY() + yMiniBtn - scroll, widthMiniBtn - 2, heightMiniBtn - 2, WIDTH_ARC, WIDTH_ARC);
+		/*** End Draw miniButton ***/
         redraw(btnTimerX, taskItems.get(indx).getBtnTimerY() - scroll, btnTimerX + BTN_TIMER_WIDTH, taskItems.get(indx).getBtnTimerY() + BTN_TIMER_HEIGHT, false);
     }
 
@@ -1308,54 +1368,6 @@ public class TasksComposite extends Composite {
 			});
 		}
 	}
-    
-    /*private void timer() {
-        if (display == null || display.isDisposed() || stopped) {
-            if (stopped) {
-                stopped = false;
-                indxRunningItem = -1;
-                setActiveTask(null);
-                Application.setStartedTask(false);
-            }
-            return;
-        }
-        if (!tasks.contains(getActiveTask())) {
-            display.timerExec(1000, timer);
-            return;
-        }
-        long nowTime = System.currentTimeMillis();
-        currentTime = nowTime - startedTime;
-        drawBtnStart(indxRunningItem);
-        if (offset[0] != null && indxRunningItem != indxSelectedItem) {
-            drawItem(indxSelectedItem);
-        }
-        dailyTotalCounter.setUserName(this.taskView.getUserName());
-        Task task = activeTask;
-        if (task.isRunning()) {
-            display.timerExec(1000, timer);
-        } else {
-            if (TimeUnit.MILLISECONDS.toMinutes(task.getCurrentTimeSpent() + currentTime) < MINIMUM_SPENT_TIME_MINUTES) { //if (tasks.get(indxRunningItem).getCurrentTimeSpent() + currentTime < 0) 
-            	task.setCurrentTimeSpent(task.getCurrentTimeSpent() + currentTime);
-                dailyTotalCounter.add(currentTime); // DUBLICATING HERE
-                drawDailyTime();
-                currentTime = 0;
-            } else {
-                currentTime += task.getCurrentTimeSpent();
-                task.setCurrentTimeSpent(0);
-            }
-            // task.setTimeSpent(task.getTimeSpent() + currentTime);
-            drawItem(indxRunningItem);
-            if (currentTime != 0) { //
-                updateWorklog(task, currentTime);
-                dailyTotalCounter.add(currentTime);
-                drawDailyTime();
-            }
-            drawItem(indxRunningItem);
-            indxRunningItem = -1;
-            setActiveTask(null);
-            Application.setStartedTask(false);
-        }
-    }*/
     
     
 
