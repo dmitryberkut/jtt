@@ -198,7 +198,7 @@ public class TasksView extends ViewPart {
         */
         FormData fd_lblNewLabel = new FormData();
         //fd_lblNewLabel.top = new FormAttachment(tasksComposite, 99);
-        fd_lblNewLabel.bottom = new FormAttachment(lblVersion, 0, SWT.TOP);
+        fd_lblNewLabel.bottom = new FormAttachment(lblVersion, 3, SWT.TOP);
         fd_lblNewLabel.left = new FormAttachment(0, 10);
         fd_lblNewLabel.right = new FormAttachment(100, -262);
         lblDayTime.setLayoutData(fd_lblNewLabel);
