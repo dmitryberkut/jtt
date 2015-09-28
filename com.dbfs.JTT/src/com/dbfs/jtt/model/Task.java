@@ -18,6 +18,7 @@ public class Task {
 	private long startedTimer;
 	private String parentKey;
 	private String parentSum;
+	private String comment;
 
 	public String getParentKey() {
 		return parentKey;
@@ -153,6 +154,14 @@ public class Task {
 
 	public void setStartedTimer(long startedTimer) {
 		this.startedTimer = startedTimer;
+	}
+
+	public String getComment() {
+		return comment;
+	}
+
+	public void setComment(String comment) {
+		this.comment = comment;
 	}
 
 	public static String millisecondsToDHM(long millisec) {

@@ -42,12 +42,12 @@ import com.atlassian.jira.rest.client.ProgressMonitor;
 import com.atlassian.jira.rest.client.RestClientException;
 import com.atlassian.jira.rest.client.SearchRestClient;
 import com.atlassian.jira.rest.client.domain.BasicIssue;
+import com.atlassian.jira.rest.client.domain.Field;
 import com.atlassian.jira.rest.client.domain.Issue;
 import com.atlassian.jira.rest.client.domain.SearchResult;
 import com.atlassian.jira.rest.client.domain.TimeTracking;
 import com.atlassian.jira.rest.client.internal.jersey.JerseyJiraRestClientFactory;
 import com.atlassian.jira.rest.client.internal.json.BasicIssueJsonParser;
-import com.atlassian.jira.rest.client.domain.Field;
 import com.dbfs.jtt.Application;
 import com.dbfs.jtt.util.LogManager;
 
@@ -179,6 +179,9 @@ public class SOAPSession implements IAdaptable {
 			worklog.setStartDate(calendar);
 			/*** worklog.setComment(genComment(calendar)); */
 		}
+		if (task.getComment() != null && !task.getComment().isEmpty()) {
+			worklog.setComment(task.getComment());
+		}
 		String asString = Task.millisecondsToDHM(millisis);
 		worklog.setTimeSpent(asString);
 
@@ -202,6 +205,7 @@ public class SOAPSession implements IAdaptable {
 		}
 		task.setTimeSpent(getAlreadyTracked(task));
 		task.setCurrentTimeSpent(0);
+		task.setComment("");
 		return;
 	}
 

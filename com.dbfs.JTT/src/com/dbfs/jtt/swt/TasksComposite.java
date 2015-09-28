@@ -13,6 +13,8 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.dialogs.InputDialog;
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
@@ -114,6 +116,8 @@ public class TasksComposite extends Composite {
     
     private final String START = "START";
     private final String STOP = "STOP";
+	private final String COMMENT_MINI_BTN_TEXT = "T";
+	private final String PAUSE_MINI_BTN_TEXT = "II";
     private final String TIME_FORMAT = "0:00:00";
     
     private int btnTimerX;
@@ -132,6 +136,8 @@ public class TasksComposite extends Composite {
     private int stopTextOffsetX;
     private int timeTextOffsetX;
     private Font timeFont;
+	private Font stopFont;
+	private Font startFont;
     private Font loggedTimeFont;
     private Font linkFont;
     private Font linkParentFont;
@@ -271,6 +277,8 @@ public class TasksComposite extends Composite {
         }
         stopTextOffsetX = (BTN_TIMER_WIDTH - x) / 2;
         timeFont = new Font(display, "Arial", 8, SWT.BOLD);
+		stopFont = new Font(display, "Arial", 6, SWT.BOLD);
+		startFont = new Font(display, "Arial", 7, SWT.BOLD);
         loggedTimeFont = new Font(display, "Arial", 7, SWT.NORMAL);
         logWorkFont = new Font(display, "Arial", 6, SWT.NORMAL);
         tCompGC.setFont(timeFont);
@@ -481,6 +489,17 @@ public class TasksComposite extends Composite {
 							return;
 						}
 						addMouseStatus(MOUSE_OVER_MINI_BTN);
+						InputDialog dialog = new InputDialog(getShell(), "Input Comment", "Please write work log comment:", "", null);
+						if (dialog.open() == Window.OK) {
+							tasks.get(indxUnderCursor).setComment(dialog.getValue());
+							if (getActiveTask() != null && !tasks.contains(getActiveTask())) {
+								showInfoMessage("Info", "You already have started task: " + getActiveTask().getKey() + ", but it is hidden by filters.");
+							} else if (isOtherTaskStarted()) {
+								getActiveTask().setRunning(false);
+								drawItem(getActiveTask());
+							}
+							startTimer(indxUnderCursor);
+						}
 					} else {
 						if (!isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {
 							return;
@@ -755,6 +774,7 @@ public class TasksComposite extends Composite {
         }
         mouseStatus = status;
         String stat = "";
+		setToolTipText("");
         if (isMouseStatus(MOUSE_OVER_ITEM)) {
             stat = "MOUSE_OVER_ITEM";
         } else if (isMouseStatus(MOUSE_DOWN_ITEM)) {
@@ -789,9 +809,15 @@ public class TasksComposite extends Composite {
             stat = "MOUSE_UP_PARENT_LINK";
 		} else if (isMouseStatus(MOUSE_OVER_MINI_BTN)) {
 			stat = "MOUSE_OVER_MINI_BTN";
+			if (tasks.get(indxUnderCursor).isRunning()) {
+				setToolTipText("Suspend work on task " + tasks.get(indxUnderCursor).getKey());
+			} else {
+				setToolTipText("Start work log with Comment");
+			}
 		} else if (isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
 			stat = "MOUSE_DOWN_MINI_BTN";
-        }
+		} else {
+		}
         logger.debug(DEBUG_INFO_INDX_MOUSE_STATUS + stat);
     }
     
@@ -970,7 +996,7 @@ public class TasksComposite extends Composite {
                 tCompGC.setForeground(ColorSchemes.timeOverTextColor);
             }
         }
-        tCompGC.drawText(spTime, linkX + startX + taskItems.get(indx).getLinkWidth() + 10, taskItems.get(indx).getLinkY() + startY + standardTextHeight - scroll, true);
+		tCompGC.drawText(spTime, linkX + startX + taskItems.get(indx).getLinkWidth() + 10, taskItems.get(indx).getLinkY() + startY + standardTextHeight - 3 - scroll, true);
         redraw(linkX + taskItems.get(indx).getLinkWidth() + 10, taskItems.get(indx).getLinkY() - scroll, btnTimerX - LOG_WORK_OFFSET - LOG_WORK_WIDTH - taskItems.get(indx).getLinkWidth(), linkHeight + standardTextHeight, false);
     }
     
@@ -1075,38 +1101,53 @@ public class TasksComposite extends Composite {
         tCompGC.drawRoundRectangle(btnTimerX, taskItems.get(indx).getBtnTimerY() - scroll, BTN_TIMER_WIDTH, BTN_TIMER_HEIGHT, WIDTH_ARC, WIDTH_ARC);
         tCompGC.drawRoundRectangle(btnTimerX + 1, taskItems.get(indx).getBtnTimerY() + 1 - scroll, BTN_TIMER_WIDTH - 2, BTN_TIMER_HEIGHT - 2, WIDTH_ARC, WIDTH_ARC);
         tCompGC.setForeground(ColorSchemes.taskStartTextColor);
+		Font prevFont = tCompGC.getFont();
         if (!tasks.get(indx).isRunning()) {
-			tCompGC.drawText(START, btnTimerX + startTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT - standardTextHeight) / 3 - scroll, true);
+			tCompGC.setFont(startFont);
+			tCompGC.drawText(START, btnTimerX + startTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT - standardTextHeight) / 2 - scroll, true);
 			// subButton here
         } else {
             tCompGC.setForeground(ColorSchemes.taskStopTextColor);
-            tCompGC.drawText(STOP, btnTimerX + stopTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT) / 2 - scroll, true);
-            Font prevFont = tCompGC.getFont();
+			tCompGC.setFont(stopFont);
+			tCompGC.drawText(STOP, btnTimerX + stopTextOffsetX - 2, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT) / 2 - scroll - 3, true);
             tCompGC.setFont(timeFont);
             tCompGC.drawText(/*TIME_FORMAT*/TimeUnit.MILLISECONDS.toHours(tasks.get(indx).getCurrentTimeSpent()) + ":" + formatter.format(new Date(tasks.get(indx).getCurrentTimeSpent())), btnTimerX + timeTextOffsetX, taskItems.get(indx).getBtnTimerY() + GRADIENT_OFFSET * 2 - scroll, true);
-            tCompGC.setFont(prevFont);
         }
+		tCompGC.setFont(prevFont);
 		/*** Start Draw miniButton ***/
+		String textMiniBtn = COMMENT_MINI_BTN_TEXT;
+		if (tasks.get(indx).isRunning()) {
+			textMiniBtn = PAUSE_MINI_BTN_TEXT;
+			mainColor = ColorSchemes.taskMiniBtnPauseColor;
+			gradColor = ColorSchemes.taskMiniBtnPauseGradientColor;
+		} else {
+			mainColor = ColorSchemes.taskMiniBtnTColor;
+			gradColor = ColorSchemes.taskMiniBtnTGradientColor;
+		}
 		int widthMiniBtn = BTN_TIMER_WIDTH * 10 / 25;
 		int heightMiniBtn = BTN_TIMER_HEIGHT * 10 / 25;
 		int xMiniBtn = BTN_TIMER_WIDTH - widthMiniBtn;
 		int yMiniBtn = BTN_TIMER_HEIGHT - heightMiniBtn;
 		boolean vertical = true;
 		if (!isMouseStatus(MOUSE_OVER_MINI_BTN) && !isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
-			tCompGC.setBackground(ColorSchemes.taskMiniBtnTGradientColor);
-			tCompGC.setForeground(ColorSchemes.taskMiniBtnTColor);
-		} else if (isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
-			tCompGC.setBackground(ColorSchemes.taskMiniBtnTColor);
-			tCompGC.setForeground(ColorSchemes.taskMiniBtnTGradientColor);
-		} else if (isMouseStatus(MOUSE_OVER_MINI_BTN)) {
-			vertical = false;
-			tCompGC.setBackground(ColorSchemes.taskMiniBtnTColor);
-			tCompGC.setForeground(ColorSchemes.taskMiniBtnTGradientColor);
+			tCompGC.setBackground(gradColor);
+			tCompGC.setForeground(mainColor);
+		} else {
+			tCompGC.setBackground(mainColor);
+			tCompGC.setForeground(gradColor);
+			if (isMouseStatus(MOUSE_OVER_MINI_BTN)) {
+				vertical = false;
+			}
 		}
 		tCompGC.fillGradientRectangle(btnTimerX + xMiniBtn + 1, taskItems.get(indx).getBtnTimerY() + yMiniBtn + 1 - scroll, widthMiniBtn - 3, heightMiniBtn - 3, vertical);
 		// tCompGC.fillRoundRectangle(btnTimerX + xMiniBtn, taskItems.get(indx).getBtnTimerY() + yMiniBtn - scroll, widthMiniBtn - 2, heightMiniBtn - 2, WIDTH_ARC, WIDTH_ARC);
 		tCompGC.setForeground(ColorSchemes.taskMiniBtnBorderColor);
 		tCompGC.drawRoundRectangle(btnTimerX + xMiniBtn, taskItems.get(indx).getBtnTimerY() + yMiniBtn - scroll, widthMiniBtn - 2, heightMiniBtn - 2, WIDTH_ARC, WIDTH_ARC);
+		if (tasks.get(indx).isRunning()) {
+			tCompGC.setForeground(ColorSchemes.taskStopTextColor);
+		}
+		tCompGC.setFont(timeFont);
+		tCompGC.drawText(textMiniBtn, btnTimerX + xMiniBtn + widthMiniBtn / 3, taskItems.get(indx).getBtnTimerY() + yMiniBtn + 2 - scroll, true);
 		/*** End Draw miniButton ***/
         redraw(btnTimerX, taskItems.get(indx).getBtnTimerY() - scroll, btnTimerX + BTN_TIMER_WIDTH, taskItems.get(indx).getBtnTimerY() + BTN_TIMER_HEIGHT, false);
     }
