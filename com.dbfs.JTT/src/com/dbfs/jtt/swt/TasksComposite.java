@@ -116,6 +116,7 @@ public class TasksComposite extends Composite {
     
     private final String START = "START";
     private final String STOP = "STOP";
+	private final String RESUME = "RESUME";
 	private final String COMMENT_MINI_BTN_TEXT = "T";
 	private final String PAUSE_MINI_BTN_TEXT = "II";
     private final String TIME_FORMAT = "0:00:00";
@@ -137,6 +138,7 @@ public class TasksComposite extends Composite {
     private int timeTextOffsetX;
     private Font timeFont;
 	private Font stopFont;
+	private Font resumeFont;
 	private Font startFont;
     private Font loggedTimeFont;
     private Font linkFont;
@@ -278,6 +280,7 @@ public class TasksComposite extends Composite {
         stopTextOffsetX = (BTN_TIMER_WIDTH - x) / 2;
         timeFont = new Font(display, "Arial", 8, SWT.BOLD);
 		stopFont = new Font(display, "Arial", 6, SWT.BOLD);
+		resumeFont = new Font(display, "Arial", 5, SWT.BOLD);
 		startFont = new Font(display, "Arial", 7, SWT.BOLD);
         loggedTimeFont = new Font(display, "Arial", 7, SWT.NORMAL);
         logWorkFont = new Font(display, "Arial", 6, SWT.NORMAL);
@@ -498,7 +501,7 @@ public class TasksComposite extends Composite {
 								getActiveTask().setRunning(false);
 								drawItem(getActiveTask());
 							}
-							startTimer(indxUnderCursor);
+							toggleTimer(indxUnderCursor);
 						}
 					} else {
 						if (!isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {
@@ -511,7 +514,7 @@ public class TasksComposite extends Composite {
 							getActiveTask().setRunning(false);
 							drawItem(getActiveTask());
 						}
-						startTimer(indxUnderCursor);
+						toggleTimer(indxUnderCursor);
 					}
 					drawItem(indxUnderCursor);
                 } else if (e.x > btnLogWorkX && e.x < btnLogWorkX + BTN_LOG_WORK_WIDTH && e.y + scroll > taskItems.get(indxUnderCursor).getBtnLogworkY() && e.y + scroll < taskItems.get(indxUnderCursor).getBtnLogworkY() + BTN_LOG_WORK_HEIGHT) {
@@ -533,7 +536,7 @@ public class TasksComposite extends Composite {
                 }
             }
 
-			private void startTimer(int index) {
+			private void toggleTimer(int index) {
 				Task task = tasks.get(index);
 				stopped = task.isRunning();
 				task.setRunning(!task.isRunning());
@@ -1102,16 +1105,21 @@ public class TasksComposite extends Composite {
         tCompGC.drawRoundRectangle(btnTimerX + 1, taskItems.get(indx).getBtnTimerY() + 1 - scroll, BTN_TIMER_WIDTH - 2, BTN_TIMER_HEIGHT - 2, WIDTH_ARC, WIDTH_ARC);
         tCompGC.setForeground(ColorSchemes.taskStartTextColor);
 		Font prevFont = tCompGC.getFont();
-        if (!tasks.get(indx).isRunning()) {
+		if (tasks.get(indx).isRunning()) {
+			tCompGC.setForeground(ColorSchemes.taskStopTextColor);
+			tCompGC.setFont(stopFont);
+			tCompGC.drawText(STOP, btnTimerX + stopTextOffsetX - 2, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT) / 2 - scroll - 4, true);
+			tCompGC.setFont(timeFont);
+			tCompGC.drawText(/* TIME_FORMAT */TimeUnit.MILLISECONDS.toHours(tasks.get(indx).getCurrentTimeSpent()) + ":" + formatter.format(new Date(tasks.get(indx).getCurrentTimeSpent())), btnTimerX + timeTextOffsetX, taskItems.get(indx).getBtnTimerY() + GRADIENT_OFFSET * 2 - scroll, true);
+		} else if (tasks.get(indx).getCurrentTimeSpent() == 0) {
 			tCompGC.setFont(startFont);
 			tCompGC.drawText(START, btnTimerX + startTextOffsetX, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT - standardTextHeight) / 2 - scroll, true);
 			// subButton here
-        } else {
-            tCompGC.setForeground(ColorSchemes.taskStopTextColor);
-			tCompGC.setFont(stopFont);
-			tCompGC.drawText(STOP, btnTimerX + stopTextOffsetX - 2, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT) / 2 - scroll - 3, true);
-            tCompGC.setFont(timeFont);
-            tCompGC.drawText(/*TIME_FORMAT*/TimeUnit.MILLISECONDS.toHours(tasks.get(indx).getCurrentTimeSpent()) + ":" + formatter.format(new Date(tasks.get(indx).getCurrentTimeSpent())), btnTimerX + timeTextOffsetX, taskItems.get(indx).getBtnTimerY() + GRADIENT_OFFSET * 2 - scroll, true);
+		} else {
+			tCompGC.setFont(resumeFont);
+			tCompGC.drawText(RESUME, btnTimerX + stopTextOffsetX - 2, taskItems.get(indx).getBtnTimerY() + (BTN_TIMER_HEIGHT) / 2 - scroll - 4, true);
+			tCompGC.setFont(timeFont);
+			tCompGC.drawText(/* TIME_FORMAT */TimeUnit.MILLISECONDS.toHours(tasks.get(indx).getCurrentTimeSpent()) + ":" + formatter.format(new Date(tasks.get(indx).getCurrentTimeSpent())), btnTimerX + timeTextOffsetX, taskItems.get(indx).getBtnTimerY() + GRADIENT_OFFSET * 2 - scroll, true);
         }
 		tCompGC.setFont(prevFont);
 		/*** Start Draw miniButton ***/
@@ -1129,7 +1137,7 @@ public class TasksComposite extends Composite {
 		int xMiniBtn = BTN_TIMER_WIDTH - widthMiniBtn;
 		int yMiniBtn = BTN_TIMER_HEIGHT - heightMiniBtn;
 		boolean vertical = true;
-		if (!isMouseStatus(MOUSE_OVER_MINI_BTN) && !isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
+		if ((!isMouseStatus(MOUSE_OVER_MINI_BTN) && !isMouseStatus(MOUSE_DOWN_MINI_BTN)) || indx != indxUnderCursor) {
 			tCompGC.setBackground(gradColor);
 			tCompGC.setForeground(mainColor);
 		} else {
@@ -1353,11 +1361,6 @@ public class TasksComposite extends Composite {
 					if (!tasks.contains(getActiveTask())) {
 						break;
 					}
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						LogManager.logStack(e);
-					}
 					long nowTime = System.currentTimeMillis();
 					task.setCurrentTimeSpent(nowTime - task.getStartedTimer());
 					Display.getDefault().asyncExec(new Runnable() {
@@ -1365,6 +1368,11 @@ public class TasksComposite extends Composite {
 							drawBtnStart(indxRunningItem);
 						}
 					});
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						LogManager.logStack(e);
+					}
 					/*if (offset[0] != null && indxRunningItem != indxSelectedItem) {
 						Display.getDefault().asyncExec(new Runnable() {
 							public void run() {
