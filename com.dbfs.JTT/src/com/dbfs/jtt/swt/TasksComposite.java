@@ -162,6 +162,10 @@ public class TasksComposite extends Composite {
 	private TasksView taskView;
 	private DailyTotalCounter dailyTotalCounter;
 
+	private final static String TOOL_TIP_TEXT_TIMER_BTN_RUNNING = "Minimum spent time for sending work log: " + MINIMUM_SPENT_TIME_MINUTES + " minutes";
+	private final static String TOOL_TIP_TEXT_MINI_BTN_RUNNING = "Suspend work on task ";
+	private final static String TOOL_TIP_TEXT_MINI_BTN = "Start work log with Comment";
+
     /**
      * Create the composite.
      * 
@@ -492,16 +496,21 @@ public class TasksComposite extends Composite {
 							return;
 						}
 						addMouseStatus(MOUSE_OVER_MINI_BTN);
-						InputDialog dialog = new InputDialog(getShell(), "Input Comment", "Please write work log comment:", "", null);
-						if (dialog.open() == Window.OK) {
-							tasks.get(indxUnderCursor).setComment(dialog.getValue());
-							if (getActiveTask() != null && !tasks.contains(getActiveTask())) {
-								showInfoMessage("Info", "You already have started task: " + getActiveTask().getKey() + ", but it is hidden by filters.");
-							} else if (isOtherTaskStarted()) {
-								getActiveTask().setRunning(false);
-								drawItem(getActiveTask());
-							}
+						if (tasks.get(indxUnderCursor).isRunning()) {
+							tasks.get(indxUnderCursor).setSuspended(true);
 							toggleTimer(indxUnderCursor);
+						} else {
+							InputDialog dialog = new InputDialog(getShell(), "WorkLog Comment", "Please write work log comment:", tasks.get(indxUnderCursor).getComment(), null);
+							if (dialog.open() == Window.OK) {
+								tasks.get(indxUnderCursor).setComment(dialog.getValue());
+								if (getActiveTask() != null && !tasks.contains(getActiveTask())) {
+									showInfoMessage("Info", "You already have started task: " + getActiveTask().getKey() + ", but it is hidden by filters.");
+								} else if (isOtherTaskStarted()) {
+									getActiveTask().setRunning(false);
+									drawItem(getActiveTask());
+								}
+								toggleTimer(indxUnderCursor);
+							}
 						}
 					} else {
 						if (!isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {
@@ -784,6 +793,10 @@ public class TasksComposite extends Composite {
             stat = "MOUSE_DOWN_ITEM";
         } else if (isMouseStatus(MOUSE_OVER_TIMER_BTN)) {
             stat = "MOUSE_OVER_TIMER_BTN";
+			if (tasks.get(indxUnderCursor).isRunning()) {
+				setToolTipText(TOOL_TIP_TEXT_TIMER_BTN_RUNNING);
+			} else {
+			}
         } else if (isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {
             stat = "MOUSE_DOWN_TIMER_BTN";
         } else if (isMouseStatus(MOUSE_OVER_LOG_WORK_BTN)) {
@@ -813,9 +826,9 @@ public class TasksComposite extends Composite {
 		} else if (isMouseStatus(MOUSE_OVER_MINI_BTN)) {
 			stat = "MOUSE_OVER_MINI_BTN";
 			if (tasks.get(indxUnderCursor).isRunning()) {
-				setToolTipText("Suspend work on task " + tasks.get(indxUnderCursor).getKey());
+				setToolTipText(TOOL_TIP_TEXT_MINI_BTN_RUNNING + tasks.get(indxUnderCursor).getKey());
 			} else {
-				setToolTipText("Start work log with Comment");
+				setToolTipText(TOOL_TIP_TEXT_MINI_BTN);
 			}
 		} else if (isMouseStatus(MOUSE_DOWN_MINI_BTN)) {
 			stat = "MOUSE_DOWN_MINI_BTN";
@@ -1373,6 +1386,7 @@ public class TasksComposite extends Composite {
 					} catch (InterruptedException e) {
 						LogManager.logStack(e);
 					}
+					// TODO wtf?
 					/*if (offset[0] != null && indxRunningItem != indxSelectedItem) {
 						Display.getDefault().asyncExec(new Runnable() {
 							public void run() {
@@ -1404,7 +1418,7 @@ public class TasksComposite extends Composite {
 					drawItem(tasks.indexOf(task));
 				}
 			});
-			if (TimeUnit.MILLISECONDS.toMinutes(task.getCurrentTimeSpent()) >= MINIMUM_SPENT_TIME_MINUTES) {
+			if (!task.isSuspended() && TimeUnit.MILLISECONDS.toMinutes(task.getCurrentTimeSpent()) >= MINIMUM_SPENT_TIME_MINUTES) {
 				updateWorklog(task);
 			}
 			Display.getDefault().asyncExec(new Runnable() {

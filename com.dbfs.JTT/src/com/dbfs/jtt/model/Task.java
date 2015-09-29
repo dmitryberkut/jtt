@@ -13,12 +13,13 @@ public class Task {
 	private String projectName = "";
 	private String status = "";
 	private boolean isRunning;
+	private boolean isSuspended;
 	private long timeSpent = 0l;
 	private long currentTimeSpent;
 	private long startedTimer;
 	private String parentKey;
 	private String parentSum;
-	private String comment;
+	private String comment = "";
 
 	public String getParentKey() {
 		return parentKey;
@@ -146,6 +147,9 @@ public class Task {
 
 	public void setRunning(boolean isRunning) {
 		this.isRunning = isRunning;
+		if (isRunning) {
+			isSuspended = false;
+		}
 	}
 
 	public long getStartedTimer() {
@@ -162,6 +166,14 @@ public class Task {
 
 	public void setComment(String comment) {
 		this.comment = comment;
+	}
+
+	public boolean isSuspended() {
+		return isSuspended;
+	}
+
+	public void setSuspended(boolean isSuspended) {
+		this.isSuspended = isSuspended;
 	}
 
 	public static String millisecondsToDHM(long millisec) {
