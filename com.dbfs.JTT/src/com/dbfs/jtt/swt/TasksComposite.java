@@ -165,7 +165,7 @@ public class TasksComposite extends Composite {
 	private TasksView taskView;
 	private DailyTotalCounter dailyTotalCounter;
 
-	private final static String TOOL_TIP_TEXT_TIMER_BTN_RUNNING = "Minimum spent time for sending work log: " + MINIMUM_SPENT_TIME_MINUTES + " minutes";
+	private final static String TOOL_TIP_TEXT_TIMER_BTN_RUNNING = "Minimum spent time: " + MINIMUM_SPENT_TIME_MINUTES + " min\nWorkLog Comment: ";
 	private final static String TOOL_TIP_TEXT_MINI_BTN_RUNNING = "Suspend work on task ";
 	private final static String TOOL_TIP_TEXT_MINI_BTN = "Start work log with Comment";
 
@@ -828,7 +828,7 @@ public class TasksComposite extends Composite {
         } else if (isMouseStatus(MOUSE_OVER_TIMER_BTN)) {
             stat = "MOUSE_OVER_TIMER_BTN";
 			if (tasks.get(indxUnderCursor).isRunning()) {
-				setToolTipText(TOOL_TIP_TEXT_TIMER_BTN_RUNNING);
+				setToolTipText(TOOL_TIP_TEXT_TIMER_BTN_RUNNING + tasks.get(indxUnderCursor).getComment());
 			} else {
 			}
         } else if (isMouseStatus(MOUSE_DOWN_TIMER_BTN)) {

@@ -150,6 +150,7 @@ public class SOAPSession implements IAdaptable {
 
 		// get worklog with today date
 		RemoteWorklog oldWorklog = null;
+		boolean differentComments = false;
 		for (int i = 0; i < worklogs.length; i++) {
 			Calendar tmpCalendar = worklogs[i].getStartDate();
 			logger.info("mayby this: year:" + tmpCalendar.get(Calendar.YEAR) + " d_o_y:" + tmpCalendar.get(Calendar.DAY_OF_YEAR));
@@ -169,12 +170,17 @@ public class SOAPSession implements IAdaptable {
 		long millisis = task.getCurrentTimeSpent();
 		// select entry for work with
 		if (oldWorklog != null) { // copy from old worklog entry
-			worklog.setId(oldWorklog.getId());
-			worklog.setCreated(oldWorklog.getCreated());
-			worklog.setStartDate(oldWorklog.getStartDate() == null ? calendar : oldWorklog.getStartDate());
-			millisis = TimeUnit.SECONDS.toMillis(oldWorklog.getTimeSpentInSeconds()) + millisis;
-			// worklog.setComment(worklogCommentUpdate(oldWorklog.getComment(),calendar));
-			worklog.setComment(oldWorklog.getComment());
+			differentComments = oldWorklog.getComment() != null && !oldWorklog.getComment().isEmpty() && task.getComment() != null && !task.getComment().isEmpty() && !oldWorklog.getComment().equalsIgnoreCase(task.getComment()); 
+			if (differentComments) {
+				worklog.setStartDate(calendar);
+			} else {
+				worklog.setId(oldWorklog.getId());
+				worklog.setCreated(oldWorklog.getCreated());
+				worklog.setStartDate(oldWorklog.getStartDate() == null ? calendar : oldWorklog.getStartDate());
+				millisis = TimeUnit.SECONDS.toMillis(oldWorklog.getTimeSpentInSeconds()) + millisis;
+				// worklog.setComment(worklogCommentUpdate(oldWorklog.getComment(),calendar));
+				worklog.setComment(oldWorklog.getComment());
+			}
 		} else { // populate new worklog entry
 			worklog.setStartDate(calendar);
 			/*** worklog.setComment(genComment(calendar)); */
@@ -186,7 +192,7 @@ public class SOAPSession implements IAdaptable {
 		worklog.setTimeSpent(asString);
 
 		// select correct 'save' strategy
-		if (oldWorklog != null) { // work with old worklog entry
+		if (oldWorklog != null && !differentComments) { // work with old worklog entry
 			tryDoThis(new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
