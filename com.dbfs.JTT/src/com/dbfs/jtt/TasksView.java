@@ -10,33 +10,30 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.log4j.Logger;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.layout.FormAttachment;
+import org.eclipse.swt.layout.FormData;
+import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.ProgressBar;
+import org.eclipse.swt.widgets.Slider;
 import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.ViewPart;
-import org.eclipse.swt.events.MouseAdapter;
-import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.layout.FormLayout;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.FormData;
-import org.eclipse.swt.layout.FormAttachment;
-import com.dbfs.jtt.dialogs.WeekReportDialog;
 import com.dbfs.jtt.model.DailyTotalCounter;
 import com.dbfs.jtt.model.SOAPSession;
 import com.dbfs.jtt.model.Task;
 import com.dbfs.jtt.swt.HeadComposite;
 import com.dbfs.jtt.swt.TasksComposite;
 import com.dbfs.jtt.util.LogManager;
-
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.Slider;
-import org.eclipse.swt.widgets.Link;
-import org.eclipse.swt.widgets.Label;
 
 public class TasksView extends ViewPart {
     private Logger logger = Logger.getLogger(TasksView.class.getName());
@@ -51,6 +48,7 @@ public class TasksView extends ViewPart {
     private Link link;
 	private Label lblDayTime;
 	private DailyTotalCounter dailyTotalCounter;
+	private ProgressBar progressBar;
 	public static final ExecutorService pool = Executors.newCachedThreadPool();
 	
     private static final String FEEDBACK_LINK = "https://docs.google.com/a/dbfs.com/spreadsheet/viewform?formkey=dG82MzNEWEl1M0lNUzNlWXFGQ2Y1enc6MA";
@@ -196,6 +194,7 @@ public class TasksView extends ViewPart {
         	}
         });
         */
+
         FormData fd_lblNewLabel = new FormData();
         //fd_lblNewLabel.top = new FormAttachment(tasksComposite, 99);
         fd_lblNewLabel.bottom = new FormAttachment(lblVersion, 3, SWT.TOP);
@@ -205,6 +204,14 @@ public class TasksView extends ViewPart {
         dailyTotalCounter.setUserName(userName);
         setDeilyTime(dailyTotalCounter.getString());
        
+		progressBar = new ProgressBar(parent, SWT.SMOOTH);
+		FormData fd_progressBar = new FormData();
+		fd_progressBar.bottom = new FormAttachment(100, -10);
+		fd_progressBar.left = new FormAttachment(lblDayTime, 5);
+		fd_progressBar.right = new FormAttachment(link, -5);
+		progressBar.setLayoutData(fd_progressBar);
+		progressBar.setVisible(false);
+		tasksComposite.setProgressBar(progressBar);
         
         headComposite.getBtnLogInOut().addSelectionListener(new SelectionAdapter() {
             public void widgetSelected(SelectionEvent e) {

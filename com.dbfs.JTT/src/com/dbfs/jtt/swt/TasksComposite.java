@@ -45,6 +45,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Text;
@@ -164,6 +165,7 @@ public class TasksComposite extends Composite {
     private static boolean stopped;
 	private TasksView taskView;
 	private DailyTotalCounter dailyTotalCounter;
+	private ProgressBar progressBar;
 
 	private final static String TOOL_TIP_TEXT_TIMER_BTN_RUNNING = "Minimum spent time: " + MINIMUM_SPENT_TIME_MINUTES + " min\nWorkLog Comment: ";
 	private final static String TOOL_TIP_TEXT_MINI_BTN_RUNNING = "Suspend work on task ";
@@ -1493,6 +1495,10 @@ public class TasksComposite extends Composite {
 	
 	private boolean isOtherTaskStarted() {
 		return getActiveTask() != null && !getActiveTask().getKey().equalsIgnoreCase(tasks.get(indxUnderCursor).getKey());
+	}
+
+	public void setProgressBar(ProgressBar progressBar) {
+		this.progressBar = progressBar;
 	}
 
 }
