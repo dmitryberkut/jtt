@@ -5,29 +5,42 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.events.ShellListener;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.ProgressBar;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.ViewPart;
 
+import com.atlassian.jira.rest.client.domain.BasicIssue;
+import com.atlassian.jira.rest.client.domain.SearchResult;
 import com.dbfs.jtt.model.DailyTotalCounter;
 import com.dbfs.jtt.model.SOAPSession;
 import com.dbfs.jtt.model.Task;
@@ -50,8 +63,14 @@ public class TasksView extends ViewPart {
 	private DailyTotalCounter dailyTotalCounter;
 	private ProgressBar progressBar;
 	public static final ExecutorService pool = Executors.newCachedThreadPool();
-	
-    private static final String FEEDBACK_LINK = "https://docs.google.com/a/dbfs.com/spreadsheet/viewform?formkey=dG82MzNEWEl1M0lNUzNlWXFGQ2Y1enc6MA";
+	private int indx;
+	private Queue<Task> queue;
+	private Slider slider;
+	private int NUM_OF_UPDATE_THREADS = 7;
+	private int SYNC_PAUSE = 60000;
+	private boolean isSync = true;
+	private Job syncJob;
+	private static final String FEEDBACK_LINK = "https://github.com/dmitryberkut/jtt/issues";
     
     public TasksView() {
         super();
@@ -65,8 +84,116 @@ public class TasksView extends ViewPart {
         projects = SOAPSession.getInstance().getProjects();
         userName = SOAPSession.getInstance().getConnectionDetails().getUser();
         dailyTotalCounter.setUserName(userName);
-    }
 
+		queue = new ConcurrentLinkedQueue<Task>(tasks);
+		for (int i = 0; i < NUM_OF_UPDATE_THREADS; i++) {
+			Job job = new UpdateTasksJob("Update issues " + i);
+			job.schedule();
+		}
+		syncJob = new SyncJob("Sync Job");
+		syncJob.schedule();
+	}
+
+	private class SyncJob extends Job {
+
+		public SyncJob(String name) {
+			super(name);
+		}
+
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+			try {
+				Thread.sleep(SYNC_PAUSE);
+			} catch (Exception e) {
+				logger.debug(e.getMessage());
+				LogManager.logStack(e);
+			}
+			while (isSync) {
+				try {
+					LogManager.log(Level.INFO, "SyncJob", "Start sync issues");
+					logger.debug("Start sync issues");
+					SearchResult searchResult = SOAPSession.getInstance().getSearchResult();
+					LogManager.log(Level.INFO, "SyncJob", "Issues in Jira/Client app: " + searchResult.getTotal() + "/" + tasks.size());
+					logger.debug("Issues in Jira/Client app: " + searchResult.getTotal() + "/" + tasks.size());
+					for (BasicIssue bIssue : searchResult.getIssues()) {
+						boolean isFound = false;
+						for (Task task : tasks) {
+							if (!task.getKey().isEmpty() && task.getKey().equalsIgnoreCase(bIssue.getKey())) {
+								isFound = true;
+								break;
+							}
+						}
+						if (!isFound) {
+							final Task task = new Task(bIssue.getKey());
+							SOAPSession.getInstance().updateTaskFromJira(task);
+							Display.getDefault().asyncExec(new Runnable() {
+								public void run() {
+									tasksComposite.addTask(task);
+								}
+							});
+						}
+					}
+				} catch (Exception e) {
+					logger.debug(e.getMessage());
+					LogManager.logStack(e);
+				}
+				try {
+					Thread.sleep(SYNC_PAUSE);
+				} catch (Exception e) {
+					logger.debug(e.getMessage());
+					LogManager.logStack(e);
+				}
+			}
+			return Status.OK_STATUS;
+		}
+
+	}
+
+	private class UpdateTasksJob extends Job {
+
+		public UpdateTasksJob(String name) {
+			super(name);
+		}
+
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+			Display.getDefault().asyncExec(new Runnable() {
+				public void run() {
+					if (indx == 0) {
+						progressBar.setMinimum(0);
+						progressBar.setMaximum(tasks.size());
+						progressBar.setVisible(true);
+						slider.setEnabled(false);
+					}
+				}
+			});
+			updateTask(queue);
+			return Status.OK_STATUS;
+		}
+
+	}
+
+	private void updateTask(Queue<Task> queue) {
+		final Task task = queue.poll();
+		if (task != null) {
+			SOAPSession.getInstance().updateTaskFromJira(task);
+			Display.getDefault().asyncExec(new Runnable() {
+				public void run() {
+					progressBar.setSelection(indx++);
+					progressBar.setToolTipText(indx + " / " + tasks.size());
+					tasksComposite.drawItem(task);
+					if (indx >= tasks.size()) {
+						progressBar.setVisible(false);
+						slider.setEnabled(true);
+						indx = 0;
+						fillPrjFilterCompo();
+						fillStatusesFilterCompo();
+					}
+				}
+			});
+			updateTask(queue);
+		}
+    }
     
     private String getStatusesToFilter(){
     	String res = null;
@@ -133,7 +260,7 @@ public class TasksView extends ViewPart {
         	}
 		});
         
-        final Slider slider = new Slider(parent, SWT.VERTICAL);
+		slider = new Slider(parent, SWT.VERTICAL);
         FormData fd_slider = new FormData();
         fd_slider.top = new FormAttachment(headComposite, 1);
         fd_slider.bottom = new FormAttachment(100, -248);
@@ -152,7 +279,7 @@ public class TasksView extends ViewPart {
         slider.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                tasksComposite.scroll();
+				tasksComposite.onScroll();
             }
         });
         headComposite.getBtnLogInOut().setText(SOAPSession.getInstance().getAuthenticationToken() != null ? "Log Out" : "Log In");
@@ -201,6 +328,8 @@ public class TasksView extends ViewPart {
         fd_lblNewLabel.left = new FormAttachment(0, 10);
         fd_lblNewLabel.right = new FormAttachment(100, -262);
         lblDayTime.setLayoutData(fd_lblNewLabel);
+		// TODO will be enabled when feature finished
+		lblDayTime.setVisible(false);
         dailyTotalCounter.setUserName(userName);
         setDeilyTime(dailyTotalCounter.getString());
        
@@ -211,7 +340,6 @@ public class TasksView extends ViewPart {
 		fd_progressBar.right = new FormAttachment(link, -5);
 		progressBar.setLayoutData(fd_progressBar);
 		progressBar.setVisible(false);
-		tasksComposite.setProgressBar(progressBar);
         
         headComposite.getBtnLogInOut().addSelectionListener(new SelectionAdapter() {
             public void widgetSelected(SelectionEvent e) {
@@ -251,7 +379,35 @@ public class TasksView extends ViewPart {
                 updateUI();
             }
         });
+		Shell shell1 = parent.getShell();
+		shell1.addShellListener(new ShellListener() {
+
+			public void shellActivated(ShellEvent event) {
+				System.out.println("activate");
+			}
+
+			public void shellClosed(ShellEvent arg0) {
+				System.out.println("close");
+				isSync = false;
+				if (syncJob != null) {
+					syncJob.cancel();
+				}
+			}
+
+			public void shellDeactivated(ShellEvent arg0) {
+				System.out.println("Deactivate");
+			}
+
+			public void shellDeiconified(ShellEvent arg0) {
+				System.out.println("Deiconified");
+			}
+
+			public void shellIconified(ShellEvent arg0) {
+				System.out.println("Iconified");
+			}
+		});
     }
+
 
     @Override
     public void setFocus() {

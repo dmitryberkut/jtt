@@ -45,7 +45,6 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Text;
@@ -165,7 +164,6 @@ public class TasksComposite extends Composite {
     private static boolean stopped;
 	private TasksView taskView;
 	private DailyTotalCounter dailyTotalCounter;
-	private ProgressBar progressBar;
 
 	private final static String TOOL_TIP_TEXT_TIMER_BTN_RUNNING = "Minimum spent time: " + MINIMUM_SPENT_TIME_MINUTES + " min\nWorkLog Comment: ";
 	private final static String TOOL_TIP_TEXT_MINI_BTN_RUNNING = "Suspend work on task ";
@@ -184,7 +182,7 @@ public class TasksComposite extends Composite {
         sizeAllImage = Activator.getImageDescriptor(IImageKeys.SIZE_ALL_CURSOR).createImage();
         addMouseWheelListener(new MouseWheelListener() {
             public void mouseScrolled(MouseEvent e) {
-                if (MAX_COUNT_TASK >= tasks.size()) {
+				if (!slider.getEnabled() || MAX_COUNT_TASK >= tasks.size()) {
                     return;
                 }
                 logger.debug(e.count);
@@ -197,7 +195,7 @@ public class TasksComposite extends Composite {
                     return;
                 }
                 slider.setSelection(slider.getSelection() + ITEM_HEIGHT * shift);
-                scroll();
+				onScroll();
             }
         });
         Rectangle rect = new Rectangle(0, 0, 1600, 1200);
@@ -660,7 +658,7 @@ public class TasksComposite extends Composite {
                                 indxSelectedItem--;
                                 if (dragItemY - scroll < 0) {
                                     slider.setSelection(slider.getSelection() - ITEM_HEIGHT);
-                                    scroll();
+									onScroll();
                                 }
                             } else {
                                 drawItem(indxSelectedItem - 1);                                
@@ -682,7 +680,7 @@ public class TasksComposite extends Composite {
                                 indxSelectedItem++;
                                 if (dragItemY + ITEM_HEIGHT > heightComposite + scroll) {
                                     slider.setSelection(slider.getSelection() + ITEM_HEIGHT);
-                                    scroll();
+									onScroll();
                                 }
                             } else {
                                 drawItem(indxSelectedItem + 1);
@@ -914,14 +912,14 @@ public class TasksComposite extends Composite {
      * @param task
      */
     public void drawItem(Task task){
-    	int id = getIdByObj(task);
-    	if(id!=-1){
-    		drawItem(id);
+		int indx = getIndxByObj(task);
+		if (indx != -1) {
+			drawItem(indx);
     	}
     }
     
     
-    private int getIdByObj(Task task){
+	private int getIndxByObj(Task task) {
     	if(!tasks.contains(task)) return -1;
     	for (int i = 0; i < tasks.size(); i++) {
     		if(tasks.get(i).equals(task)){
@@ -931,10 +929,10 @@ public class TasksComposite extends Composite {
     	return -1;
     }
     
-    public void drawItem(int indx) {
-        if (tasks.size() == 0 || taskItems.size() == 0 || taskItems.get(indx).getItemY() + ITEM_HEIGHT <= scroll || taskItems.get(indx).getItemY() >= scroll + heightComposite) {
+	public void drawItem(int indx) {
+		if (tasks.size() == 0 || taskItems.size() == 0 || taskItems.get(indx).getItemY() + ITEM_HEIGHT <= scroll || taskItems.get(indx).getItemY() >= scroll + heightComposite) {
             return;
-        }
+		}
         int startY = 0;
         int startX = 0;
         if (tasks.get(indx).getParentKey() != null) {
@@ -998,6 +996,12 @@ public class TasksComposite extends Composite {
         drawBtnLogWork(indx);
         drawBtnStart(indx);
         
+		if (tasks.get(indx).getAdded() > 0) {
+			tCompGC.setForeground(ColorSchemes.newTaskColor);
+			tCompGC.setFont(descFont);
+			tCompGC.drawText("New", 10, taskItems.get(indx).getLinkY() + startY + linkHeight - 4 - scroll, true);
+		}
+
         /*** test grid ***/
         /*for (int i = 0; i < cells.length; i++) {
             tCompGC.drawRectangle(LEFT_OFFSET, cells[i], width, ITEM_HEIGHT);
@@ -1252,6 +1256,7 @@ public class TasksComposite extends Composite {
     }
     
     public void addTask(Task task) {
+		task.setAdded(System.currentTimeMillis());
         tasks.add(0, task);
         TaskItem ti = new TaskItem();
         Font prevFont = tCompGC.getFont();
@@ -1281,7 +1286,7 @@ public class TasksComposite extends Composite {
         }
     }
     
-    public void scroll() {
+	public void onScroll() {
         scroll = slider.getSelection();
         logger.debug("---- Start Painting Block -----");
         for (int i = 0; i < tasks.size(); i ++) {
@@ -1495,10 +1500,6 @@ public class TasksComposite extends Composite {
 	
 	private boolean isOtherTaskStarted() {
 		return getActiveTask() != null && !getActiveTask().getKey().equalsIgnoreCase(tasks.get(indxUnderCursor).getKey());
-	}
-
-	public void setProgressBar(ProgressBar progressBar) {
-		this.progressBar = progressBar;
 	}
 
 }

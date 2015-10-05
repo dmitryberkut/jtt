@@ -20,6 +20,7 @@ public class Task {
 	private String parentKey;
 	private String parentSum;
 	private String comment = "";
+	private long added = 0l;
 
 	public String getParentKey() {
 		return parentKey;
@@ -42,13 +43,13 @@ public class Task {
 	}
 
 	public Task(String prjName, String key, String url, String desc, long timeEstim, long timeSpent, String status) {
-		setStatus(status);
 		setProjectName(prjName);
 		setKey(key);
 		setUrl(url);
 		setDescription(desc);
 		setTimeEstimated(String.valueOf(timeEstim).length() <= 2 ? TimeUnit.HOURS.toMillis(timeEstim) : TimeUnit.SECONDS.toMillis(timeEstim));
 		setTimeSpent(TimeUnit.SECONDS.toMillis(timeSpent));
+		setStatus(status);
 	}
 
 	public String getFormatedTimeSpent() {
@@ -174,6 +175,14 @@ public class Task {
 
 	public void setSuspended(boolean isSuspended) {
 		this.isSuspended = isSuspended;
+	}
+
+	public long getAdded() {
+		return added;
+	}
+
+	public void setAdded(long added) {
+		this.added = added;
 	}
 
 	public static String millisecondsToDHM(long millisec) {

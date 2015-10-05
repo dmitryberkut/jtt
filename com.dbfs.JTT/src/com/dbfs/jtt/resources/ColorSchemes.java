@@ -30,4 +30,5 @@ public class ColorSchemes {
     public static Color loginMsgForgraundColor = Display.getCurrent().getSystemColor(SWT.COLOR_RED);
     public static Color loginMsgBackgroundColor = new Color(Display.getCurrent(), 255, 207, 207);
     public static Color loginMsgTextColor = Display.getCurrent().getSystemColor(SWT.COLOR_BLACK);
+	public static Color newTaskColor = Display.getCurrent().getSystemColor(SWT.COLOR_RED);
 }

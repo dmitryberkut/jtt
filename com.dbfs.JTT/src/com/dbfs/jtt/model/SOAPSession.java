@@ -340,19 +340,73 @@ public class SOAPSession implements IAdaptable {
 		this.projects = projects;
 	}
 
+	public void updateTaskFromJira(Task task) {
+		JiraRestClient restClient = getRestClient();
+		NullProgressMonitor pm = new NullProgressMonitor();
+		Issue issue = restClient.getIssueClient().getIssue(task.getKey(), pm);
+		TimeTracking tt = issue.getTimeTracking();
+		long oe = tt.getOriginalEstimateMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getOriginalEstimateMinutes()) : 0;
+		long ts = tt.getTimeSpentMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getTimeSpentMinutes()) : 0;
+		String status = issue.getStatus().getName();
+		task.setProjectName(issue.getProject().getName());
+		task.setUrl(connectionDetails.getServer() + "/browse/" + task.getKey());
+		task.setDescription(issue.getSummary());
+		task.setTimeEstimated(String.valueOf(oe).length() <= 2 ? TimeUnit.HOURS.toMillis(oe) : TimeUnit.SECONDS.toMillis(oe));
+		task.setTimeSpent(TimeUnit.SECONDS.toMillis(ts));
+		task.setStatus(status);
+		LogManager.log(Level.INFO, "", task.getKey() + " | " + issue.getProject().getName() + " | " + issue.getSummary());
+
+		Field ob = issue.getField("parent");
+		if (ob != null) {
+			JSONObject jsonParent = (JSONObject) ob.getValue();
+			BasicIssue bi = null;
+			try {
+				bi = new BasicIssueJsonParser().parse(jsonParent);
+			} catch (JSONException e1) {
+				LogManager.logStack(e1);
+			}
+			task.setParentKey(bi.getKey());
+			task.setParentUrl(connectionDetails.getServer() + "/browse/" + bi.getKey());
+			try {
+				Issue iss2 = restClient.getIssueClient().getIssue(bi.getKey(), pm);
+				task.setParentSum(iss2.getSummary());
+			} catch (Exception e) {
+				LogManager.logStack(e);
+				try {
+					token = jiraSoapService.login(connectionDetails.getUser(), connectionDetails.getPassword());
+					RemoteIssue remoteIssue = jiraSoapService.getIssue(token, bi.getKey());
+					if (remoteIssue != null) {
+						task.setParentSum(remoteIssue.getSummary());
+					} else {
+						task.setParentSum("Parent task name");
+					}
+				} catch (Exception e1) {
+					LogManager.logStack(e);
+				}
+			}
+		}
+		String keyPrj = issue.getProject().getKey();
+		if (!projects.containsKey(keyPrj)) {
+			projects.put(keyPrj, new ArrayList<Task>());
+		}
+		projects.get(keyPrj).add(task);
+	}
+
+	public SearchResult getSearchResult() {
+		JiraRestClient restClient = getRestClient();
+		NullProgressMonitor pm = new NullProgressMonitor();
+		LogManager.log(Level.INFO, "", "jqlQuery = '" + jqlQuery + "'");
+		SearchRestClient searchClient = restClient.getSearchClient();
+		LogManager.log(Level.INFO, "", "try to get searchResult...");
+		return searchClient.searchJql(jqlQuery, pm);
+	}
+
 	public void getTasksFromJqlSearch(IProgressMonitor monitor) throws RestClientException {
 		LogManager.log(Level.INFO, "", "start getTasksFromJqlSearch() function");
         List<Task> res = new ArrayList<Task>();
-        JiraRestClient restClient = getRestClient();
-        NullProgressMonitor pm = new NullProgressMonitor();
-
         // let's now print all issues matching a JQL string (here: all assigned issues)
         try {
-            LogManager.log(Level.INFO, "", "jqlQuery = '" + jqlQuery + "'");
-            SearchRestClient searchClient = restClient.getSearchClient();
-            LogManager.log(Level.INFO, "", "try to get searchResult...");
-            final SearchResult searchResult = searchClient.searchJql(jqlQuery, pm);
-            LogManager.log(Level.INFO, "", "searchResult = '" + searchResult.toString() + "'");
+			SearchResult searchResult = getSearchResult();
             //float k = (searchResult.getTotal() > 0) ? 100 / searchResult.getTotal() : 100;
             int i = 0;
             projects = new HashMap<String, List<Task>>();
@@ -363,7 +417,7 @@ public class SOAPSession implements IAdaptable {
 					break;
 				}
             	LogManager.log(Level.INFO, "", "getting issues: " + (i+1) + "/" + searchResult.getTotal());
-                Issue issue = restClient.getIssueClient().getIssue(bIssue.getKey(), pm);
+                /*Issue issue = restClient.getIssueClient().getIssue(bIssue.getKey(), pm);
                 subMonitor.setTaskName(bIssue.getKey() + " | " + issue.getSummary());
                 if (issue.getIssueType().isSubtask()) {
                 }
@@ -403,13 +457,14 @@ public class SOAPSession implements IAdaptable {
                     }
                 }
 
-                res.add(task);
+                res.add(task);*/
+            	res.add(new Task(bIssue.getKey()));
 
-                String keyPrj = issue.getProject().getKey();
+                /*String keyPrj = issue.getProject().getKey();
                 if (!projects.containsKey(keyPrj)) {
                     projects.put(keyPrj, new ArrayList<Task>());
                 }
-                projects.get(keyPrj).add(task);
+                projects.get(keyPrj).add(task);*/
 
                 subMonitor.newChild(1);
                 if (monitor != null) {
@@ -425,6 +480,7 @@ public class SOAPSession implements IAdaptable {
             }
             setIssues(res);
         } catch (RestClientException e) {
+			LogManager.logStack(e);
             Display disp = Display.getCurrent() == null ? Display.getDefault() : Display.getCurrent();
             disp.asyncExec(new Runnable() {
                 public void run() {
@@ -436,7 +492,7 @@ public class SOAPSession implements IAdaptable {
                     }
                 }
             });
-            throw e;
+			// throw e;
         }
         
         /*********************/
