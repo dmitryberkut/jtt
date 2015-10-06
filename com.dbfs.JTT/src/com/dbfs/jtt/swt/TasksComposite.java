@@ -1267,6 +1267,9 @@ public class TasksComposite extends Composite {
     }
     
     public void addTask(Task task) {
+		if (indxRunningItem > -1) {
+			indxRunningItem++;
+		}
 		task.setAdded(System.currentTimeMillis());
         tasks.add(0, task);
         TaskItem ti = new TaskItem();
