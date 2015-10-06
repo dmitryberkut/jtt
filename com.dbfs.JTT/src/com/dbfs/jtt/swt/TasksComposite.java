@@ -877,7 +877,7 @@ public class TasksComposite extends Composite {
         redraw(LEFT_OFFSET - 2, taskItems.get(indx).getItemY() - 2 - scroll, widthComposite, ITEM_HEIGHT + 4, false);
     }
     
-    private void resizeTaskItem(int indx) {
+	public void resizeTaskItem(int indx) {
         int width = widthComposite - LEFT_OFFSET - RIGHT_OFFSET; 
         btnTimerX = width - BTN_TIMER_OFFSET - BTN_TIMER_WIDTH;
         taskItems.get(indx).setItemY(indx * ITEM_HEIGHT + ITEM_OFFSET);
@@ -886,8 +886,18 @@ public class TasksComposite extends Composite {
         taskItems.get(indx).setBtnLogworkY(taskItems.get(indx).getBtnTimerY() + LOG_WORK_PADDING * 2 + standardTextHeight);
         txtLogWorkX = btnLogWorkX;
         int startY = 0;
-        if (tasks.get(indxUnderCursor).getParentKey() != null) {
+		if (tasks.get(indx).getParentKey() != null) {
             startY = SUB_ITEM_HEIGHT;
+			/*** Start block of setting width for parent link ***/
+			Font prevFont = tCompGC.getFont();
+			int x = 0;
+			tCompGC.setFont(linkParentFont);
+			for (int z = 0; z < tasks.get(indx).getParentKey().length(); z++) {
+				x += tCompGC.getCharWidth(tasks.get(indx).getParentKey().charAt(z));
+			}
+			taskItems.get(indx).setLinkParentWidth(x);
+			tCompGC.setFont(prevFont);
+			/*** End block of setting width for parent link ***/
         }
         if (text.isVisible()) {
             text.setLocation(txtLogWorkX + 1, text.getLocation().y + startY);
@@ -905,6 +915,7 @@ public class TasksComposite extends Composite {
         taskItems.get(indx).setBtnLogworkY(taskItems.get(indx).getBtnTimerY() + LOG_WORK_PADDING * 2 + standardTextHeight);
         taskItems.get(indx).setTxtLogworkY(taskItems.get(indx).getBtnTimerY() + LOG_WORK_PADDING);
         taskItems.get(indx).setLinkY(taskItems.get(indx).getItemY() + LINK_OFFSET);
+		taskItems.get(indx).setParentLinkY(taskItems.get(indx).getItemY());
     }
     
     /**
@@ -912,14 +923,14 @@ public class TasksComposite extends Composite {
      * @param task
      */
     public void drawItem(Task task){
-		int indx = getIndxByObj(task);
+		int indx = getTaskIndx(task);
 		if (indx != -1) {
 			drawItem(indx);
     	}
     }
     
     
-	private int getIndxByObj(Task task) {
+	public int getTaskIndx(Task task) {
     	if(!tasks.contains(task)) return -1;
     	for (int i = 0; i < tasks.size(); i++) {
     		if(tasks.get(i).equals(task)){
@@ -1329,15 +1340,6 @@ public class TasksComposite extends Composite {
                     x += tCompGC.getCharWidth(tasks.get(i).getKey().charAt(z));
                 }
                 ti.setLinkWidth(x);
-                if (tasks.get(i).getParentKey() != null) {
-                    x = 0;
-                    tCompGC.setFont(linkParentFont);
-                    for (int z = 0; z < tasks.get(i).getParentKey().length(); z++) {
-                        x += tCompGC.getCharWidth(tasks.get(i).getParentKey().charAt(z));
-                    }
-                    ti.setLinkParentWidth(x);
-                    tCompGC.setFont(linkFont);
-                }
             }
             taskItems.add(ti);
         }

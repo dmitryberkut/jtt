@@ -90,7 +90,7 @@ public class TasksView extends ViewPart {
 			Job job = new UpdateTasksJob("Update issues " + i);
 			job.schedule();
 		}
-		syncJob = new SyncJob("Sync Job");
+		syncJob = new SyncJob("SyncJob");
 		syncJob.schedule();
 	}
 
@@ -181,7 +181,9 @@ public class TasksView extends ViewPart {
 				public void run() {
 					progressBar.setSelection(indx++);
 					progressBar.setToolTipText(indx + " / " + tasks.size());
-					tasksComposite.drawItem(task);
+					int taskIndx = tasksComposite.getTaskIndx(task);
+					tasksComposite.resizeTaskItem(taskIndx);
+					tasksComposite.drawItem(taskIndx);
 					if (indx >= tasks.size()) {
 						progressBar.setVisible(false);
 						slider.setEnabled(true);
