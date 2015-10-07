@@ -959,7 +959,7 @@ public class TasksComposite extends Composite {
         if (tasks.get(indx).getParentKey() != null) {
             startX = SUB_ITEM_OFFSET_X; 
         }
-        logger.debug("HashCode for tasks List: " + tasks.hashCode());
+		// logger.debug("HashCode for tasks List: " + tasks.hashCode());
         int width = widthComposite - LEFT_OFFSET - RIGHT_OFFSET;
         tCompGC.setForeground(ColorSchemes.taskBorderColor);
         tCompGC.setBackground(ColorSchemes.taskItemBackgroundColor);
@@ -1032,7 +1032,7 @@ public class TasksComposite extends Composite {
         }*/
         
         redraw(LEFT_OFFSET, taskItems.get(indx).getItemY() - scroll, widthComposite, ITEM_HEIGHT + 1, false);
-        logger.debug("                    redraw(LEFT_OFFSET["+LEFT_OFFSET+"], (taskItems.get("+indx+").getItemY())["+taskItems.get(indx).getItemY()+"] - scroll["+scroll+"], widthComposite["+widthComposite+"], ITEM_HEIGHT["+ITEM_HEIGHT+"] + 1, false);");
+		logger.debug("redraw(LEFT_OFFSET[" + LEFT_OFFSET + "], (taskItems.get(" + indx + ").getItemY())[" + taskItems.get(indx).getItemY() + "] - scroll[" + scroll + "], widthComposite[" + widthComposite + "], ITEM_HEIGHT[" + ITEM_HEIGHT + "] + 1, false);");
     }
     
     

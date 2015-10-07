@@ -123,6 +123,7 @@ public class SOAPSession implements IAdaptable {
 			return;
 
 		logger.info("updateWorklog start here");
+		LogManager.log(Level.INFO, "SOAPSession", "updateWorklog start here");
 		RemoteWorklog[] worklogs = tryDoThis(new Callable<RemoteWorklog[]>() {
 			@Override
 			public RemoteWorklog[] call() throws Exception {
@@ -142,23 +143,29 @@ public class SOAPSession implements IAdaptable {
 
 		if (worklogs == null) {
 			logger.info("failed to receive worklogs. exit function");
+			LogManager.log(Level.INFO, "SOAPSession", "failed to receive worklogs. exit function");
 			return;
 		}
 		logger.info("worklogs.length:" + worklogs.length);
+		LogManager.log(Level.INFO, "SOAPSession", "worklogs.length:" + worklogs.length);
 		Calendar calendar = Calendar.getInstance();
-		logger.info("today is: year:" + calendar.get(Calendar.YEAR) + " d_o_y:" + calendar.get(Calendar.DAY_OF_YEAR));
+		logger.info("today is YEAR:" + calendar.get(Calendar.YEAR) + " DAY_OF_YEAR:" + calendar.get(Calendar.DAY_OF_YEAR));
+		LogManager.log(Level.INFO, "SOAPSession", "today is YEAR:" + calendar.get(Calendar.YEAR) + " DAY_OF_YEAR:" + calendar.get(Calendar.DAY_OF_YEAR));
 
 		// get worklog with today date
 		RemoteWorklog oldWorklog = null;
 		boolean differentComments = false;
 		for (int i = 0; i < worklogs.length; i++) {
 			Calendar tmpCalendar = worklogs[i].getStartDate();
-			logger.info("mayby this: year:" + tmpCalendar.get(Calendar.YEAR) + " d_o_y:" + tmpCalendar.get(Calendar.DAY_OF_YEAR));
+			String author = worklogs[i].getAuthor();
+			logger.info("worklog YEAR:" + tmpCalendar.get(Calendar.YEAR) + " DAY_OF_YEAR:" + tmpCalendar.get(Calendar.DAY_OF_YEAR) + ", author: " + author);
+			LogManager.log(Level.INFO, "SOAPSession", "worklog YEAR:" + tmpCalendar.get(Calendar.YEAR) + " DAY_OF_YEAR:" + tmpCalendar.get(Calendar.DAY_OF_YEAR) + ", author: " + author);
 
-			if (tmpCalendar.get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR) && tmpCalendar.get(Calendar.YEAR) == calendar.get(Calendar.YEAR)) { // same
+			if (connectionDetails.getUser().equalsIgnoreCase(author) && tmpCalendar.get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR) && tmpCalendar.get(Calendar.YEAR) == calendar.get(Calendar.YEAR)) {
 																																																																													// day
 				oldWorklog = worklogs[i];
 				logger.info("Find worklog ok");
+				LogManager.log(Level.INFO, "SOAPSession", "Find worklog ok");
 				break;
 			}
 		}
@@ -195,6 +202,7 @@ public class SOAPSession implements IAdaptable {
 			tryDoThis(new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
+					LogManager.log(Level.INFO, "SOAPSession", "jiraSoapService.updateWorklogAndAutoAdjustRemainingEstimate(" + token + ", " + worklog + ");");
 					jiraSoapService.updateWorklogAndAutoAdjustRemainingEstimate(token, worklog);
 					return null;
 				}
@@ -203,6 +211,7 @@ public class SOAPSession implements IAdaptable {
 			tryDoThis(new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
+					LogManager.log(Level.INFO, "SOAPSession", "jiraSoapService.addWorklogAndAutoAdjustRemainingEstimate(" + token + ", " + task.getKey() + ", " + worklog + ");");
 					jiraSoapService.addWorklogAndAutoAdjustRemainingEstimate(token, task.getKey(), worklog);
 					return null;
 				}
@@ -556,13 +565,13 @@ public class SOAPSession implements IAdaptable {
 		} catch (InvocationTargetException e1) {
 			logger.debug(e1.getMessage());
 			SOAPSession.getInstance().setConnectionFaultMsg(e1.getMessage());
-			// LogManager.logStack(e1);
+			LogManager.logStack(e1);
 			logger.warn(e1);
 			throw e1;
 		} catch (InterruptedException e1) {
 			logger.debug(e1.getMessage());
 			SOAPSession.getInstance().setConnectionFaultMsg(e1.getMessage());
-			// LogManager.logStack(e1);
+			LogManager.logStack(e1);
 			logger.warn(e1);
 			throw e1;
 		}
@@ -587,19 +596,19 @@ public class SOAPSession implements IAdaptable {
 		try {
 			return funct.call();
 		} catch (RemoteException e) {
-			// LogManager.logStack(e);
+			LogManager.logStack(e);
 			logger.warn(e);
 		} catch (Exception e) {
-			// LogManager.logStack(e);
+			LogManager.logStack(e);
 			logger.warn(e);
 		}
 		try {
 			reconnect();
 		} catch (InterruptedException e1) {
-			// LogManager.logStack(e1);
+			LogManager.logStack(e1);
 			logger.warn(e1);
 		} catch (InvocationTargetException e1) {
-			// LogManager.logStack(e1);
+			LogManager.logStack(e1);
 			logger.warn(e1);
 		}
 		logger.info("END tryDoThis with attempts:" + attempts);
