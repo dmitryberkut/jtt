@@ -803,8 +803,18 @@ public class TasksComposite extends Composite {
         text.setVisible(false);
         //drawTimeEstimation(indxSelectedItem);
         text.setText("");
-		updateWorklog(tasks.get(indxSelectedItem));
-		drawItem(localTask);
+		if (millis > 0) {
+			localTask.setCurrentTimeSpent(localTask.getCurrentTimeSpent() + millis);
+		}
+		Job job = new Job("Update worklog from txt") {
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				updateWorklog(localTask);
+				return Status.OK_STATUS;
+			}
+		};
+		job.schedule();
+		// drawItem(localTask);
         dailyTotalCounter.setUserName(this.taskView.getUserName());
         dailyTotalCounter.add(millis);
         drawDailyTime();
@@ -1097,7 +1107,7 @@ public class TasksComposite extends Composite {
         tCompGC.drawRectangle(txtLogWorkX, taskItems.get(indx).getTxtLogworkY() - scroll, LOG_WORK_TEXT_BOX_WIDTH, standardTextHeight);
         tCompGC.setForeground(ColorSchemes.taskStartTextColor);
         tCompGC.drawText(tasks.get(indx).getLogWorkH(), txtLogWorkX + LOG_WORK_PADDING, taskItems.get(indx).getTxtLogworkY() - scroll, true);
-        tCompGC.drawText("h", txtLogWorkX + LOG_WORK_PADDING + LOG_WORK_TEXT_BOX_WIDTH, taskItems.get(indx).getTxtLogworkY() - scroll, true);
+		tCompGC.drawText("h", txtLogWorkX + LOG_WORK_PADDING + LOG_WORK_TEXT_BOX_WIDTH, taskItems.get(indx).getTxtLogworkY() - scroll, true);
         redraw(txtLogWorkX, taskItems.get(indx).getTxtLogworkY() - scroll, LOG_WORK_TEXT_BOX_WIDTH, standardTextHeight, false);
     }
     
@@ -1377,12 +1387,16 @@ public class TasksComposite extends Composite {
         }
     }
     
-	protected void updateWorklog(Task task) {
+	protected void updateWorklog(final Task task) {
 		try {
 			logger.debug("Time is logged: " + Task.millisecondsToDHM(task.getCurrentTimeSpent()));
 			SOAPSession.getInstance().updateWorklog(task);
 			// drawTimeEstimation(tasks.indexOf(task));
-			drawItem(tasks.indexOf(task));
+			Display.getDefault().asyncExec(new Runnable() {
+				public void run() {
+					drawItem(task);
+				}
+			});
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 			LogManager.logStack(e);
@@ -1469,7 +1483,7 @@ public class TasksComposite extends Composite {
 			}
 			Display.getDefault().asyncExec(new Runnable() {
 				public void run() {
-					drawItem(tasks.indexOf(task));
+					// drawItem(task);
 					if (getActiveTask() == null || task.getKey().equalsIgnoreCase(getActiveTask().getKey())) {
 						indxRunningItem = -1;
 					}

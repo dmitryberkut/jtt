@@ -163,7 +163,6 @@ public class SOAPSession implements IAdaptable {
 			}
 		}
 
-		logger.info("");
 		final RemoteWorklog worklog = new RemoteWorklog();
 		worklog.setUpdateAuthor(connectionDetails.getUser());
 
