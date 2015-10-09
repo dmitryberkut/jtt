@@ -7,17 +7,19 @@ import org.eclipse.ui.application.WorkbenchWindowAdvisor;
 
 public class ApplicationWorkbenchAdvisor extends WorkbenchAdvisor {
 
-	private static final String PERSPECTIVE_ID = "com.dbfs.JTT.perspective"; //$NON-NLS-1$
-	
+	private static final String PERSPECTIVE_ID = "com.dbfs.JTT.perspective";
+
 	@Override
 	public void initialize(IWorkbenchConfigurer configurer) {
-	    configurer.setSaveAndRestore(true);
+		configurer.setSaveAndRestore(true);
 	}
 
-    public WorkbenchWindowAdvisor createWorkbenchWindowAdvisor(IWorkbenchWindowConfigurer configurer) {
-        return new ApplicationWorkbenchWindowAdvisor(configurer);
-    }
+	@Override
+	public WorkbenchWindowAdvisor createWorkbenchWindowAdvisor(IWorkbenchWindowConfigurer configurer) {
+		return new ApplicationWorkbenchWindowAdvisor(configurer);
+	}
 
+	@Override
 	public String getInitialWindowPerspectiveId() {
 		return PERSPECTIVE_ID;
 	}

@@ -12,37 +12,37 @@ import com.dbfs.jtt.util.LogManager;
 
 public class LoggingPreferencePage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
-public static final String IS_LOGGING = "prefs_is_logging";
-public static final String IS_DIALOGS = "prefs_is_dialogs";
-    
-    private ScopedPreferenceStore preferences;
-    
-    @SuppressWarnings("deprecation")
-    public LoggingPreferencePage() {
-        super(GRID);
-        preferences = new ScopedPreferenceStore(new ConfigurationScope(), Application.PLUGIN_ID);
-        setPreferenceStore(preferences);
-    }
-    
-    public void init(IWorkbench workbench) {        
-    }
+	public static final String IS_LOGGING = "prefs_is_logging";
+	public static final String IS_DIALOGS = "prefs_is_dialogs";
 
-    @Override
-    protected void createFieldEditors() {
-        BooleanFieldEditor boolEditor = new BooleanFieldEditor(IS_LOGGING, "Logging to file", getFieldEditorParent());
-        addField(boolEditor);
-        boolEditor = new BooleanFieldEditor(IS_DIALOGS, "Show dialog with fatal errors", getFieldEditorParent());
-        addField(boolEditor);
-    }
+	private final ScopedPreferenceStore preferences;
 
-    @Override
-    public boolean performOk() {
-        try {
-            preferences.save();
-        }
-        catch (Exception e) {
-            LogManager.logStack(e);
-        }
-        return super.performOk();
-    }
+	@SuppressWarnings("deprecation")
+	public LoggingPreferencePage() {
+		super(GRID);
+		preferences = new ScopedPreferenceStore(new ConfigurationScope(), Application.PLUGIN_ID);
+		setPreferenceStore(preferences);
+	}
+
+	@Override
+	public void init(IWorkbench workbench) {
+	}
+
+	@Override
+	protected void createFieldEditors() {
+		BooleanFieldEditor boolEditor = new BooleanFieldEditor(IS_LOGGING, "Logging to file", getFieldEditorParent());
+		addField(boolEditor);
+		boolEditor = new BooleanFieldEditor(IS_DIALOGS, "Show dialog with fatal errors", getFieldEditorParent());
+		addField(boolEditor);
+	}
+
+	@Override
+	public boolean performOk() {
+		try {
+			preferences.save();
+		} catch (Exception e) {
+			LogManager.logStack(e);
+		}
+		return super.performOk();
+	}
 }

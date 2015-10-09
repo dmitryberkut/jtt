@@ -52,15 +52,14 @@ import com.dbfs.jtt.Application;
 import com.dbfs.jtt.util.LogManager;
 
 /**
- * This represents a SOAP session with JIRA including that state of being logged
- * in or not
+ * This represents a SOAP session with JIRA including that state of being logged in or not
  */
 public class SOAPSession implements IAdaptable {
 	Logger logger = Logger.getLogger(SOAPSession.class);
 	private static String JQL_QUERY_TEMPLATE = "assignee = '%s' AND status != Closed";
 	// private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy.MM.dd hh:mm:ss");
 	private ConnectionDetails connectionDetails;
-	private JiraSoapServiceServiceLocator jiraSoapServiceLocator = new JiraSoapServiceServiceLocator();
+	private final JiraSoapServiceServiceLocator jiraSoapServiceLocator = new JiraSoapServiceServiceLocator();
 	private JiraSoapService jiraSoapService;
 	private String token;
 	private static SOAPSession INSTANCE;
@@ -71,13 +70,13 @@ public class SOAPSession implements IAdaptable {
 	private String connectionFaultMsg;
 
 	/*
-	 * private Map<String, String> subtaskIDs = new HashMap<String, String>();
-	 * private Map<String, Integer> taskKeyIndx = new HashMap<String, Integer>();
+	 * private Map<String, String> subtaskIDs = new HashMap<String, String>(); private Map<String, Integer> taskKeyIndx = new HashMap<String, Integer>();
 	 */
 
 	public static SOAPSession getInstance() {
-		if (INSTANCE == null)
+		if (INSTANCE == null) {
 			INSTANCE = new SOAPSession();
+		}
 		return INSTANCE;
 	}
 
@@ -119,8 +118,9 @@ public class SOAPSession implements IAdaptable {
 
 	public void updateWorklog(final Task task) throws RemotePermissionException, RemoteValidationException, org.swift.common.soap.jira.RemoteException, RemoteException {
 		final String methodName = "updateWorklog";
-		if (token == null)
+		if (token == null) {
 			return;
+		}
 
 		logger.info("updateWorklog start here");
 		LogManager.log(Level.INFO, "SOAPSession", "updateWorklog start here");
@@ -155,15 +155,15 @@ public class SOAPSession implements IAdaptable {
 		// get worklog with today date
 		RemoteWorklog oldWorklog = null;
 		boolean differentComments = false;
-		for (int i = 0; i < worklogs.length; i++) {
-			Calendar tmpCalendar = worklogs[i].getStartDate();
-			String author = worklogs[i].getAuthor();
+		for (RemoteWorklog worklog : worklogs) {
+			Calendar tmpCalendar = worklog.getStartDate();
+			String author = worklog.getAuthor();
 			logger.info("worklog YEAR:" + tmpCalendar.get(Calendar.YEAR) + " DAY_OF_YEAR:" + tmpCalendar.get(Calendar.DAY_OF_YEAR) + ", author: " + author);
 			LogManager.log(Level.INFO, "SOAPSession", "worklog YEAR:" + tmpCalendar.get(Calendar.YEAR) + " DAY_OF_YEAR:" + tmpCalendar.get(Calendar.DAY_OF_YEAR) + ", author: " + author);
 
-			if (connectionDetails.getUser().equalsIgnoreCase(author) && tmpCalendar.get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR) && tmpCalendar.get(Calendar.YEAR) == calendar.get(Calendar.YEAR)) {
-																																																																													// day
-				oldWorklog = worklogs[i];
+			if (connectionDetails.getUser().equalsIgnoreCase(author) && (tmpCalendar.get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR)) && (tmpCalendar.get(Calendar.YEAR) == calendar.get(Calendar.YEAR))) {
+				// day
+				oldWorklog = worklog;
 				logger.info("Find worklog ok");
 				LogManager.log(Level.INFO, "SOAPSession", "Find worklog ok");
 				break;
@@ -176,7 +176,7 @@ public class SOAPSession implements IAdaptable {
 		long millisis = task.getCurrentTimeSpent();
 		// select entry for work with
 		if (oldWorklog != null) { // copy from old worklog entry
-			differentComments = oldWorklog.getComment() != null && !oldWorklog.getComment().isEmpty() && task.getComment() != null && !task.getComment().isEmpty() && !oldWorklog.getComment().equalsIgnoreCase(task.getComment()); 
+			differentComments = (oldWorklog.getComment() != null) && !oldWorklog.getComment().isEmpty() && (task.getComment() != null) && !task.getComment().isEmpty() && !oldWorklog.getComment().equalsIgnoreCase(task.getComment());
 			if (differentComments) {
 				worklog.setStartDate(calendar);
 			} else {
@@ -191,14 +191,14 @@ public class SOAPSession implements IAdaptable {
 			worklog.setStartDate(calendar);
 			/*** worklog.setComment(genComment(calendar)); */
 		}
-		if (task.getComment() != null && !task.getComment().isEmpty()) {
+		if ((task.getComment() != null) && !task.getComment().isEmpty()) {
 			worklog.setComment(task.getComment());
 		}
 		String asString = Task.millisecondsToDHM(millisis);
 		worklog.setTimeSpent(asString);
 
 		// select correct 'save' strategy
-		if (oldWorklog != null && !differentComments) { // work with old worklog entry
+		if ((oldWorklog != null) && !differentComments) { // work with old worklog entry
 			tryDoThis(new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
@@ -224,7 +224,6 @@ public class SOAPSession implements IAdaptable {
 	}
 
 	/**
-	 * 
 	 * @param task
 	 * @return in millisec.
 	 */
@@ -237,47 +236,19 @@ public class SOAPSession implements IAdaptable {
 		return alreadyMilliseconds;
 	}
 
-	/*** private String genComment(Calendar calendar) {
-	return "Jira Time Tracker " + JTTVersion.getText() + " [" + dateFormatter.format(calendar.getTime()) + "]";
-	}*/
+	/***
+	 * private String genComment(Calendar calendar) { return "Jira Time Tracker " + JTTVersion.getText() + " [" + dateFormatter.format(calendar.getTime()) + "]"; }
+	 */
 
-/*public SOAPSession(URL webServicePort) {
-    jiraSoapServiceLocator = new JiraSoapServiceServiceLocator();
-    fJiraSoapServiceGetter.setJirasoapserviceV2EndpointAddress(server + endPoint);
-    fJiraSoapServiceGetter.setMaintainSession(true);
-    fJiraSoapService = fJiraSoapServiceGetter.getJirasoapserviceV2();
-    try {
-        if (webServicePort == null) {
-            jiraSoapService = jiraSoapServiceLocator.getJirasoapserviceV2();
-        } else {
-            jiraSoapService = jiraSoapServiceLocator.getJirasoapserviceV2(webServicePort);
-            System.out.println("SOAP Session service endpoint at " + webServicePort.toExternalForm());
-        }
-    } catch (ServiceException e) {
-        throw new RuntimeException("ServiceException during SOAPClient contruction", e);
-    }
-  }*/
+	/*
+	 * public SOAPSession(URL webServicePort) { jiraSoapServiceLocator = new JiraSoapServiceServiceLocator(); fJiraSoapServiceGetter.setJirasoapserviceV2EndpointAddress(server + endPoint); fJiraSoapServiceGetter.setMaintainSession(true); fJiraSoapService = fJiraSoapServiceGetter.getJirasoapserviceV2(); try { if (webServicePort == null) { jiraSoapService =
+	 * jiraSoapServiceLocator.getJirasoapserviceV2(); } else { jiraSoapService = jiraSoapServiceLocator.getJirasoapserviceV2(webServicePort); System.out.println("SOAP Session service endpoint at " + webServicePort.toExternalForm()); } } catch (ServiceException e) { throw new RuntimeException("ServiceException during SOAPClient contruction", e); } }
+	 */
 
-/***private String worklogCommentUpdate(String comment, Calendar calendar) {
-	// "Jira Time Tracker " + JTTVersion.getText() + " [" + dateFormatter.format(calendar.getTime()) + "]"
-	String regex = "Jira\\s+Time\\s+Tracker\\s+[\\d\\.]+\\s+\\[[\\d\\.\\ :]+\\]";
-	Matcher matcher = Pattern.compile(regex).matcher(comment);
-	String foundStr = null;
-	while(matcher.find()){// get last match
-		foundStr = matcher.group();
-	}
-	if(foundStr!=null){// match exist - remove it
-		comment = comment.substring(0,comment.lastIndexOf(foundStr));
-		if(comment.length()!=0){
-			if(comment.charAt(comment.length()-1) == '\n'){
-				comment = comment.substring(0,comment.length()-1);
-			};    			
-		}
-	}
-	
-	comment+="\n"+genComment(calendar); // and anyway write again
-	return comment;
-  }*/
+	/***
+	 * private String worklogCommentUpdate(String comment, Calendar calendar) { // "Jira Time Tracker " + JTTVersion.getText() + " [" + dateFormatter.format(calendar.getTime()) + "]" String regex = "Jira\\s+Time\\s+Tracker\\s+[\\d\\.]+\\s+\\[[\\d\\.\\ :]+\\]"; Matcher matcher = Pattern.compile(regex).matcher(comment); String foundStr = null; while(matcher.find()){// get last match foundStr =
+	 * matcher.group(); } if(foundStr!=null){// match exist - remove it comment = comment.substring(0,comment.lastIndexOf(foundStr)); if(comment.length()!=0){ if(comment.charAt(comment.length()-1) == '\n'){ comment = comment.substring(0,comment.length()-1); }; } } comment+="\n"+genComment(calendar); // and anyway write again return comment; }
+	 */
 
 	public ConnectionDetails getConnectionDetails() {
 		return connectionDetails;
@@ -313,14 +284,14 @@ public class SOAPSession implements IAdaptable {
 	}
 
 	public void setIssues(List<Task> issues) {
-		if (this.issues != null && issues != null && this.issues.size() > issues.size()) {
+		if ((this.issues != null) && (issues != null) && (this.issues.size() > issues.size())) {
 			List<Task> closed = new ArrayList<Task>();
 			for (int i = 0; i < this.issues.size(); i++) {
 				String searchKey = this.issues.get(i).getKey();
 				for (int z = 0; z < issues.size(); z++) {
 					if (searchKey.equals(issues.get(z).getKey())) {
 						break;
-					} else if (z == issues.size() - 1) {
+					} else if (z == (issues.size() - 1)) {
 						closed.add(this.issues.get(i));
 					}
 				}
@@ -411,112 +382,70 @@ public class SOAPSession implements IAdaptable {
 
 	public void getTasksFromJqlSearch(IProgressMonitor monitor) throws RestClientException {
 		LogManager.log(Level.INFO, "", "start getTasksFromJqlSearch() function");
-        List<Task> res = new ArrayList<Task>();
-        // let's now print all issues matching a JQL string (here: all assigned issues)
-        try {
+		List<Task> res = new ArrayList<Task>();
+		// let's now print all issues matching a JQL string (here: all assigned issues)
+		try {
 			SearchResult searchResult = getSearchResult();
-            //float k = (searchResult.getTotal() > 0) ? 100 / searchResult.getTotal() : 100;
-            int i = 0;
-            projects = new HashMap<String, List<Task>>();
-            LogManager.log(Level.INFO, "", "getting issues...");
-            SubMonitor subMonitor = SubMonitor.convert(monitor, searchResult.getTotal());
-            for (BasicIssue bIssue : searchResult.getIssues()) {
+			// float k = (searchResult.getTotal() > 0) ? 100 / searchResult.getTotal() : 100;
+			int i = 0;
+			projects = new HashMap<String, List<Task>>();
+			LogManager.log(Level.INFO, "", "getting issues...");
+			SubMonitor subMonitor = SubMonitor.convert(monitor, searchResult.getTotal());
+			for (BasicIssue bIssue : searchResult.getIssues()) {
 				if (monitor.isCanceled()) {
 					break;
 				}
-            	LogManager.log(Level.INFO, "", "getting issues: " + (i+1) + "/" + searchResult.getTotal());
-                /*Issue issue = restClient.getIssueClient().getIssue(bIssue.getKey(), pm);
-                subMonitor.setTaskName(bIssue.getKey() + " | " + issue.getSummary());
-                if (issue.getIssueType().isSubtask()) {
-                }
-                TimeTracking tt = issue.getTimeTracking();
-                long oe = tt.getOriginalEstimateMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getOriginalEstimateMinutes()) : 0;
-                long ts = tt.getTimeSpentMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getTimeSpentMinutes()) : 0;
-                String status = issue.getStatus().getName();
-                Task task = new Task(issue.getProject().getName(), bIssue.getKey(), connectionDetails.getServer() + "/browse/" + bIssue.getKey(), issue.getSummary(), oe, ts, status);
-                LogManager.log(Level.INFO, "", bIssue.getKey() + " | " + issue.getProject().getName() + " | " + issue.getSummary());
+				LogManager.log(Level.INFO, "", "getting issues: " + (i + 1) + "/" + searchResult.getTotal());
+				/*
+				 * Issue issue = restClient.getIssueClient().getIssue(bIssue.getKey(), pm); subMonitor.setTaskName(bIssue.getKey() + " | " + issue.getSummary()); if (issue.getIssueType().isSubtask()) { } TimeTracking tt = issue.getTimeTracking(); long oe = tt.getOriginalEstimateMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getOriginalEstimateMinutes()) : 0; long ts = tt.getTimeSpentMinutes() != null ?
+				 * TimeUnit.MINUTES.toSeconds(tt.getTimeSpentMinutes()) : 0; String status = issue.getStatus().getName(); Task task = new Task(issue.getProject().getName(), bIssue.getKey(), connectionDetails.getServer() + "/browse/" + bIssue.getKey(), issue.getSummary(), oe, ts, status); LogManager.log(Level.INFO, "", bIssue.getKey() + " | " + issue.getProject().getName() + " | " + issue.getSummary());
+				 * Field ob = issue.getField("parent"); if (ob != null) { JSONObject jsonParent = (JSONObject) ob.getValue(); BasicIssue bi = null; try { bi = new BasicIssueJsonParser().parse(jsonParent); } catch (JSONException e1) { LogManager.logStack(e1); } task.setParentKey(bi.getKey()); task.setParentUrl(connectionDetails.getServer() + "/browse/" + bi.getKey()); try { Issue iss2 =
+				 * restClient.getIssueClient().getIssue(bi.getKey(), pm); task.setParentSum(iss2.getSummary()); } catch (Exception e) { LogManager.logStack(e); try { RemoteIssue remoteIssue = jiraSoapService.getIssue(token, bi.getKey()); if (remoteIssue != null) { task.setParentSum(remoteIssue.getSummary()); } else { task.setParentSum("Parent task name"); } } catch (Exception e1) { LogManager.logStack(e);
+				 * } } } res.add(task);
+				 */
+				res.add(new Task(bIssue.getKey()));
 
-                Field ob = issue.getField("parent");
-                if (ob != null) {
-                    JSONObject jsonParent = (JSONObject) ob.getValue();
-                    BasicIssue bi = null;
-                    try {
-                        bi = new BasicIssueJsonParser().parse(jsonParent);
-                    } catch (JSONException e1) {
-                    	LogManager.logStack(e1);
-                    }
-                    task.setParentKey(bi.getKey());
-                    task.setParentUrl(connectionDetails.getServer() + "/browse/" + bi.getKey());
-                    try {
-                    	Issue iss2 = restClient.getIssueClient().getIssue(bi.getKey(), pm);
-                    	task.setParentSum(iss2.getSummary());
-                    } catch (Exception e) {
-                    	LogManager.logStack(e);
-                    	try {
-                    		RemoteIssue remoteIssue = jiraSoapService.getIssue(token, bi.getKey());
-                    		if (remoteIssue != null) {
-                    			task.setParentSum(remoteIssue.getSummary());
-                    		} else {
-                    			task.setParentSum("Parent task name");
-                    		}
-						} catch (Exception e1) {
-							LogManager.logStack(e);
-						}
-                    }
-                }
+				/*
+				 * String keyPrj = issue.getProject().getKey(); if (!projects.containsKey(keyPrj)) { projects.put(keyPrj, new ArrayList<Task>()); } projects.get(keyPrj).add(task);
+				 */
 
-                res.add(task);*/
-            	res.add(new Task(bIssue.getKey()));
-
-                /*String keyPrj = issue.getProject().getKey();
-                if (!projects.containsKey(keyPrj)) {
-                    projects.put(keyPrj, new ArrayList<Task>());
-                }
-                projects.get(keyPrj).add(task);*/
-
-                subMonitor.newChild(1);
-                if (monitor != null) {
-                    //monitor.worked((int) (k * i++));
+				subMonitor.newChild(1);
+				if (monitor != null) {
+					// monitor.worked((int) (k * i++));
 					monitor.subTask("Loading JIRA's tickets... [" + (++i) + "/" + searchResult.getTotal() + "]");
-                }
-                
-            }
+				}
 
-            if (monitor != null) {
-                //monitor.worked(100);
-            	monitor.done();
-            }
-            setIssues(res);
-        } catch (RestClientException e) {
+			}
+
+			if (monitor != null) {
+				// monitor.worked(100);
+				monitor.done();
+			}
+			setIssues(res);
+		} catch (RestClientException e) {
 			LogManager.logStack(e);
-            Display disp = Display.getCurrent() == null ? Display.getDefault() : Display.getCurrent();
-            disp.asyncExec(new Runnable() {
-                public void run() {
-                    if (openQuestion()) {
-                        getTasksFromJqlSearch(null);
-                    }
-                    if (projects == null) {
-                        projects = new HashMap<String, List<Task>>();
-                    }
-                }
-            });
+			Display disp = Display.getCurrent() == null ? Display.getDefault() : Display.getCurrent();
+			disp.asyncExec(new Runnable() {
+				@Override
+				public void run() {
+					if (openQuestion()) {
+						getTasksFromJqlSearch(null);
+					}
+					if (projects == null) {
+						projects = new HashMap<String, List<Task>>();
+					}
+				}
+			});
 			// throw e;
-        }
-        
-        /*********************/
-        /*** Jira SOAP API ***/
-        /*********************/
-        /******Start******RemoteIssue[] issuesFromTextSearch = jiraSoapService.getIssuesFromJqlSearch(token, JQL_QUERY_TEMPLATE, 10000);
+		}
 
-        for (RemoteIssue remoteIssue : issuesFromTextSearch) {
-            RemoteWorklog[] worklogs = jiraSoapService.getWorklogs(token, remoteIssue.getKey());
-            long lastSpentTime = 0;
-
-            for (RemoteWorklog remoteWorklog : worklogs) {
-                lastSpentTime = remoteWorklog.getTimeSpentInSeconds();
-            }
-            //res.add(new Task(remoteIssue.getKey(), connectionDetails.getServer() + "/browse/" + remoteIssue.getKey(), remoteIssue.getSummary(), lastSpentTime, lastSpentTime));
-        }****End*****/
+		/*********************/
+		/*** Jira SOAP API ***/
+		/*********************/
+		/******
+		 * Start******RemoteIssue[] issuesFromTextSearch = jiraSoapService.getIssuesFromJqlSearch(token, JQL_QUERY_TEMPLATE, 10000); for (RemoteIssue remoteIssue : issuesFromTextSearch) { RemoteWorklog[] worklogs = jiraSoapService.getWorklogs(token, remoteIssue.getKey()); long lastSpentTime = 0; for (RemoteWorklog remoteWorklog : worklogs) { lastSpentTime = remoteWorklog.getTimeSpentInSeconds(); }
+		 * //res.add(new Task(remoteIssue.getKey(), connectionDetails.getServer() + "/browse/" + remoteIssue.getKey(), remoteIssue.getSummary(), lastSpentTime, lastSpentTime)); }****End
+		 *****/
 		LogManager.log(Level.INFO, "", "end getTasksFromJqlSearch() function: tasks.size() = " + res.size());
 	}
 
