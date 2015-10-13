@@ -1,11 +1,8 @@
 package com.dbfs.jtt.dialogs;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 import org.eclipse.core.runtime.IProduct;
@@ -14,7 +11,6 @@ import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
-import org.eclipse.equinox.security.storage.StorageException;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -43,7 +39,10 @@ import org.osgi.service.prefs.Preferences;
 
 import com.dbfs.jtt.Application;
 import com.dbfs.jtt.JTTVersion;
+import com.dbfs.jtt.model.Company;
 import com.dbfs.jtt.model.ConnectionDetails;
+import com.dbfs.jtt.model.Server;
+import com.dbfs.jtt.model.User;
 import com.dbfs.jtt.preferences.GeneralPreferencePage;
 import com.dbfs.jtt.resources.ColorSchemes;
 import com.dbfs.jtt.swt.LoginMessageComposite;
@@ -51,87 +50,221 @@ import com.dbfs.jtt.util.LogManager;
 
 public class LoginDialog extends Dialog {
 
-	private static final String PASSWORD = "password";
-	private static final String SERVER = "server";
-	private static final String SAVED = "saved-connections";
-	private static final String LAST_USER = "last-connection";
+	private static final String SEPARATOR = "-=//=-";
+	private static final String SAVED = "jtt_saved_connections";
+	private static final String LAST_CONNECTION = "jtt_last_connection";
 	// private static final String SERVER_URL = "http://jira.ontrq.com";
 
 	public static final String DAYLY_TIME = "dayly-time";
 	public static final String DAYLY_TODAY = "dayly-today"; // format: yyyy-MM-dd
 	public static final String DAYLY_ROOT = "local_work_log_node";
 
-	private Combo userNameText;
-	private Text serverText;
-	private Text passwordText;
+	private Combo comboCompany;
+	private Combo comboServer;
+	private Combo comboUserName;
+	private Text textPswd;
+	private ConnectionDetails resultConnectionDetails;
+	private final LinkedHashMap<String, Company> savedConnectionDetails = new LinkedHashMap<String, Company>();
 	private Image[] images;
-	private ConnectionDetails connectionDetails;
-	private final Map<String, ConnectionDetails> savedDetails = new HashMap<String, ConnectionDetails>();
 	private String faultMsg;
+	private Button buttonLogin;
 
 	public LoginDialog(Shell parentShell) {
 		super(parentShell);
 		loadDescriptors();
 	}
 
-	public void setLblMsg(String plblMsg) {
-		faultMsg = plblMsg;
+	private String buildKey() {
+		if (resultConnectionDetails == null) {
+			return "";
+		}
+		return new StringBuilder(resultConnectionDetails.getCompany()).append(SEPARATOR).append(resultConnectionDetails.getServer()).append(SEPARATOR).append(resultConnectionDetails.getUser()).toString();
 	}
 
 	public void saveDescriptors() {
-		// TODO: working with Preferences move to separate class
+		String company = comboCompany.getText();
+		String url = comboServer.getText();
+		String username = comboUserName.getText();
+		String password = textPswd.getText();
+
+		resultConnectionDetails = new ConnectionDetails(company, url, username, password);
+
 		try {
+			// key = 'Company/URL/Username'
+			// value = 'Password'
+			String key = buildKey();
 			ISecurePreferences preferences = SecurePreferencesFactory.getDefault();
-			preferences.put(LAST_USER, connectionDetails.getUser(), false);
+			ISecurePreferences lastConnection = preferences.node(LAST_CONNECTION);
+			lastConnection.put(LAST_CONNECTION, key + SEPARATOR + resultConnectionDetails.getPassword(), false);
+			lastConnection.flush();
 			ISecurePreferences connections = preferences.node(SAVED);
-			for (Entry<String, ConnectionDetails> entry : savedDetails.entrySet()) {
-				ConnectionDetails details = entry.getValue();
-				ISecurePreferences connection = connections.node(entry.getKey());
-				connection.put(SERVER, details.getServer(), false);
-				connection.put(PASSWORD, details.getPassword(), false);
-			}
+			connections.put(key, resultConnectionDetails.getPassword(), false);
 			connections.flush();
-		} catch (StorageException e) {
-			LogManager.logStack(e);
-		} catch (IOException e) {
+			preferences.flush();
+		} catch (Exception e) {
 			LogManager.logStack(e);
 		}
 	}
 
 	private void loadDescriptors() {
-		ISecurePreferences userNameNode = null;
 		try {
 			ISecurePreferences preferences = SecurePreferencesFactory.getDefault();
-			ISecurePreferences connections = preferences.node(SAVED);
-			String[] userNames = connections.childrenNames();
-			for (String userName : userNames) {
-				userNameNode = connections.node(userName);
-				savedDetails.put(userName, new ConnectionDetails(userName, userNameNode.get(SERVER, ""), userNameNode.get(PASSWORD, "")));
+			ISecurePreferences lastConnection = preferences.node(LAST_CONNECTION);
+
+			if ((lastConnection != null) && (lastConnection.keys() != null) && (lastConnection.keys().length > 0)) {
+				String[] path = lastConnection.get(LAST_CONNECTION, "").split(SEPARATOR);
+				if (path.length == 4) {
+					String company = path[0];
+					String url = path[1];
+					String username = path[2];
+					String password = path[3];
+					resultConnectionDetails = new ConnectionDetails(company, url, username, password);
+				}
 			}
-			connectionDetails = savedDetails.get(preferences.get(LAST_USER, ""));
-		} catch (StorageException e) {
+
+			ISecurePreferences connections = preferences.node(SAVED);
+			String[] keys = connections.keys();
+			for (String key : keys) {
+				String[] path = key.split(SEPARATOR);
+				String companyName = path[0];
+				String url = path[1];
+				String username = path[2];
+				String password = connections.get(key, null);
+				User user = new User(username);
+				user.setPassword(password);
+				Server server = new Server(url);
+				server.addUser(user);
+				Company company = new Company(companyName);
+				company.addServer(server);
+				if (savedConnectionDetails.containsKey(companyName)) {
+					savedConnectionDetails.get(companyName).addServer(server);
+				} else {
+					savedConnectionDetails.put(companyName, company);
+				}
+				if (resultConnectionDetails == null) {
+					resultConnectionDetails = new ConnectionDetails(companyName, url, username, password);
+				}
+			}
+		} catch (Exception e) {
 			LogManager.logStack(e);
-			if (userNameNode != null) {
-				userNameNode.removeNode();
+		}
+	}
+
+	private void selectCompanyCombo() {
+		Company company = savedConnectionDetails.get(comboCompany.getText());
+		Server server = company.getServers().get(0);
+		User user = server.getUsers().get(0);
+		resultConnectionDetails = new ConnectionDetails(company.getName(), server.getName(), user.getName(), user.getPassword());
+		fillAndSelectCombo();
+	}
+
+	private void selectServerCombo() {
+		Company company = savedConnectionDetails.get(resultConnectionDetails.getCompany());
+		Server server = company.getServers().get(comboServer.getSelectionIndex());
+		User user = server.getUsers().get(0);
+		resultConnectionDetails = new ConnectionDetails(company.getName(), server.getName(), user.getName(), user.getPassword());
+		fillAndSelectCombo();
+	}
+
+	private void selectUserCombo() {
+		Company company = savedConnectionDetails.get(resultConnectionDetails.getCompany());
+		Server server = company.getServers().get(comboServer.indexOf(comboServer.getText()));
+		User user = server.getUsers().get(comboUserName.getSelectionIndex());
+		resultConnectionDetails = new ConnectionDetails(company.getName(), server.getName(), user.getName(), user.getPassword());
+		fillAndSelectCombo();
+	}
+
+	private void unregisterModifyTextListeners() {
+		comboCompany.removeModifyListener(modifyTextListener);
+		comboServer.removeModifyListener(modifyTextListener);
+		comboUserName.removeModifyListener(modifyTextListener);
+		textPswd.removeModifyListener(modifyTextListener);
+	}
+
+	private void registerModifyTextListeners() {
+		comboCompany.addModifyListener(modifyTextListener);
+		comboServer.addModifyListener(modifyTextListener);
+		comboUserName.addModifyListener(modifyTextListener);
+		textPswd.addModifyListener(modifyTextListener);
+	}
+
+	final ModifyListener modifyTextListener = new ModifyListener() {
+		@Override
+		public void modifyText(ModifyEvent e) {
+			enableOrDisableLoginButton();
+		}
+	};
+
+	private void enableOrDisableLoginButton() {
+		boolean isFieldsCorrect = (comboCompany.getText().trim().length() > 0) && (comboServer.getText().trim().length() > 0) && (comboUserName.getText().trim().length() > 0) && (textPswd.getText().trim().length() > 0);
+
+		if ((buttonLogin != null) && !buttonLogin.isDisposed()) {
+			buttonLogin.setEnabled(isFieldsCorrect);
+		}
+	}
+
+	private void fillAndSelectCombo() {
+		unregisterModifyTextListeners();
+		if (comboCompany.getItems().length > 0) {
+			comboCompany.removeAll();
+			comboCompany.setText("");
+		}
+		if (comboServer.getItems().length > 0) {
+			comboServer.removeAll();
+			comboServer.setText("");
+		}
+		if (comboUserName.getItems().length > 0) {
+			comboUserName.removeAll();
+			comboUserName.setText("");
+		}
+		if (textPswd.getText().length() > 0) {
+			textPswd.setText("");
+		}
+
+		for (String company : savedConnectionDetails.keySet()) {
+			comboCompany.add(company);
+		}
+		if (resultConnectionDetails != null) {
+			comboCompany.setText(resultConnectionDetails.getCompany());
+			Company selectedCompany = savedConnectionDetails.get(resultConnectionDetails.getCompany());
+
+			Server selectedServer = null;
+			for (Server svr : selectedCompany.getServers()) {
+				comboServer.add(svr.getName());
+				if (resultConnectionDetails.getServer().equals(svr.getName())) {
+					selectedServer = svr;
+				}
+			}
+			comboServer.setText(resultConnectionDetails.getServer());
+
+			if (selectedServer != null) {
+				User selectedUser = null;
+				for (User user : selectedServer.getUsers()) {
+					comboUserName.add(user.getName());
+					if (resultConnectionDetails.getUser().equals(user.getName())) {
+						selectedUser = user;
+						comboUserName.setText(user.getName());
+						textPswd.setText(user.getPassword());
+					}
+				}
+
+				if (selectedUser != null) {
+				}
 			}
 		}
+		registerModifyTextListeners();
+		enableOrDisableLoginButton();
+	}
+
+	public void setLblMsg(String plblMsg) {
+		faultMsg = plblMsg;
 	}
 
 	@Override
 	protected void buttonPressed(int buttonId) {
-		String userName = userNameText.getText();
-		String server = /* SERVER_URL;// */serverText.getText();
-		String password = passwordText.getText();
-
-		if (!userName.equals("") && !server.equals("") && !password.equals("")) {
-			connectionDetails = new ConnectionDetails(userName, server, password);
-			savedDetails.put(userName, connectionDetails);
-
-			if ((buttonId == IDialogConstants.OK_ID) || (buttonId == IDialogConstants.CANCEL_ID)) {
-				saveDescriptors();
-			}
+		if (buttonId == IDialogConstants.OK_ID) {
+			saveDescriptors();
 		}
-
 		super.buttonPressed(buttonId);
 	}
 
@@ -177,11 +310,11 @@ public class LoginDialog extends Dialog {
 		GridData gd_accountLabel = null;
 		if (faultMsg != null) {
 			gd_accountLabel = new GridData(SWT.CENTER, GridData.CENTER, false, false, 1, 1);
-			gd_accountLabel.widthHint = 340;
+			// gd_accountLabel.widthHint = 340;
 			LoginMessageComposite lmc = new LoginMessageComposite(composite, SWT.NONE);
 			GridData gd_lmc = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
 			gd_lmc.heightHint = 40;
-			gd_lmc.widthHint = 325;
+			gd_lmc.widthHint = 405;
 			lmc.setLayoutData(gd_lmc);
 			lmc.setMsg(faultMsg);
 		} else {
@@ -197,40 +330,46 @@ public class LoginDialog extends Dialog {
 		lblCompanyproject.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		lblCompanyproject.setText("Company:");
 
-		Combo combo = new Combo(composite, SWT.NONE);
-		combo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-
-		Label serverLabel = new Label(composite, SWT.NONE);
-		serverLabel.setText("&Server:");
-		serverLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
-
-		serverText = new Text(composite, SWT.BORDER);
-		serverText.addModifyListener(new ModifyListener() {
+		comboCompany = new Combo(composite, SWT.NONE);
+		comboCompany.addSelectionListener(new SelectionAdapter() {
 			@Override
-			public void modifyText(ModifyEvent e) {
-				if (serverText.getText().length() > 0) {
-					serverText.setBackground(ColorSchemes.normalTextboxBackgroundColor);
-				}
+			public void widgetSelected(SelectionEvent e) {
+				selectCompanyCombo();
 			}
 		});
-		serverText.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, false));
+		comboCompany.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+
+		Label serverLabel = new Label(composite, SWT.NONE);
+		serverLabel.setText("&Server/Url:");
+		serverLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
+
+		comboServer = new Combo(composite, SWT.NONE);
+		comboServer.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				selectServerCombo();
+			}
+		});
+		comboServer.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label userIdLabel = new Label(composite, SWT.NONE);
 		userIdLabel.setText("&Username:");
 		userIdLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
 
-		userNameText = new Combo(composite, SWT.BORDER);
+		comboUserName = new Combo(composite, SWT.BORDER);
 		// gridData.widthHint = 350;
-		userNameText.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, false));
-		userNameText.addListener(SWT.Modify, new Listener() {
+		comboUserName.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, false));
+		comboUserName.addListener(SWT.Modify, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-				ConnectionDetails details = savedDetails.get(userNameText.getText());
-				if (details != null) {
-					userNameText.setBackground(ColorSchemes.normalTextboxBackgroundColor);
-					serverText.setText(details.getServer());
-					passwordText.setText(details.getPassword());
-				}
+				comboUserName.setBackground(ColorSchemes.normalTextboxBackgroundColor);
+				textPswd.setText("");
+			}
+		});
+		comboUserName.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				selectUserCombo();
 			}
 		});
 
@@ -238,20 +377,36 @@ public class LoginDialog extends Dialog {
 		passwordLabel.setText("&Password:");
 		passwordLabel.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false));
 
-		passwordText = new Text(composite, SWT.BORDER | SWT.PASSWORD);
-		passwordText.addModifyListener(new ModifyListener() {
+		textPswd = new Text(composite, SWT.BORDER | SWT.PASSWORD);
+		textPswd.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent e) {
-				if (passwordText.getText().length() > 0) {
-					passwordText.setBackground(ColorSchemes.normalTextboxBackgroundColor);
+				if (textPswd.getText().length() > 0) {
+					textPswd.setBackground(ColorSchemes.normalTextboxBackgroundColor);
 				}
 			}
 		});
-		passwordText.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, false));
+		textPswd.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, false));
 
 		@SuppressWarnings("deprecation")
 		Preferences preferences = new ConfigurationScope().getNode(Application.PLUGIN_ID);
-		new Label(composite, SWT.NONE);
+
+		final Button btnClean = new Button(composite, SWT.NONE);
+		btnClean.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				ISecurePreferences preferences = SecurePreferencesFactory.getDefault();
+				ISecurePreferences lastConnection = preferences.node(LAST_CONNECTION);
+				lastConnection.removeNode();
+				ISecurePreferences connections = preferences.node(SAVED);
+				connections.removeNode();
+				btnClean.setEnabled(false);
+				fillAndSelectCombo();
+			}
+		});
+		btnClean.setText("Clean all");
+		btnClean.setToolTipText("Removes all saved credentials in the system");
+		btnClean.setEnabled(savedConnectionDetails.size() > 0);
 
 		final Button autoLogin = new Button(composite, SWT.CHECK);
 		autoLogin.setText("Remember Me (Login &automaticaly at startup)");
@@ -271,68 +426,33 @@ public class LoginDialog extends Dialog {
 		});
 		autoLogin.setSelection(preferences.getBoolean(GeneralPreferencePage.AUTO_LOGIN, false));
 
-		String lastUser = "none";
+		/*String lastUser = "none";
 		if (connectionDetails != null) {
 			lastUser = connectionDetails.getUser();
 		}
-		initializeUsers(lastUser);
+		initializeUsers(lastUser);*/
+		fillAndSelectCombo();
 
 		return composite;
-	}
-
-	protected void initializeUsers(String defaultUser) {
-		userNameText.removeAll();
-		passwordText.setText("");
-		serverText.setText("");
-		for (String user : savedDetails.keySet()) {
-			userNameText.add(user);
-		}
-		int index = Math.max(userNameText.indexOf(defaultUser), 0);
-		userNameText.select(index);
 	}
 
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-		createButton(parent, IDialogConstants.OK_ID, "&Login", true);
-	}
-
-	@Override
-	protected void okPressed() {
-		String userName = userNameText.getText();
-		String server = /* SERVER_URL;// */serverText.getText();
-		String password = passwordText.getText();
-		boolean isBlank = false;
-		if (userName.equals("")) {
-			userNameText.setBackground(ColorSchemes.blankTextboxBackgroundColor);
-			userNameText.setText("Username field must not be blank");
-			// MessageDialog.openError(getShell(), "Invalid Username", "Username field must not be blank.");
-			isBlank = true;
-		}
-		if (server.equals("")) {
-			serverText.setBackground(ColorSchemes.blankTextboxBackgroundColor);
-			serverText.setMessage("Server field must not be blank");
-			// MessageDialog.openError(getShell(), "Invalid Server", "Server field must not be blank.");
-			isBlank = true;
-		}
-		if (password.equals("")) {
-			passwordText.setBackground(ColorSchemes.blankTextboxBackgroundColor);
-			passwordText.setMessage("Password field must not be blank");
-			// MessageDialog.openError(getShell(), "Invalid Password", "Password field must not be blank.");
-			isBlank = true;
-		}
-		if (isBlank) {
-			return;
-		}
-		connectionDetails = new ConnectionDetails(userName, server, password);
-		super.okPressed();
+		buttonLogin = createButton(parent, IDialogConstants.OK_ID, "&Login", true);
+		buttonLogin.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+			}
+		});
+		enableOrDisableLoginButton();
 	}
 
 	/**
 	 * Returns the connection details entered by the user, or <code>null</code> if the dialog was canceled.
 	 */
 	public ConnectionDetails getConnectionDetails() {
-		return connectionDetails;
+		return resultConnectionDetails;
 	}
 
 	@Override

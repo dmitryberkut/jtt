@@ -102,7 +102,8 @@ public class LoginMessageComposite extends Composite {
 		int x = (widthComposite - typeTextWidth - TEXT_INDENT - msgTextWidth) / 2;
 		gc.drawText(typeMsg, x, (heightComposite - typeTextHeight) / 2);
 		gc.setFont(msgFont);
-		gc.drawText(msg, x + typeTextWidth + TEXT_INDENT, (heightComposite - msgTextHeight) / 2);
+		// gc.setClipping(LEFT_OFFSET, TOP_OFFSET, widthComposite - LEFT_OFFSET - RIGHT_OFFSET, heightComposite - TOP_OFFSET - BOTTOM_OFFSET);
+		gc.drawText(msg, 5, (heightComposite - msgTextHeight) / 2, true);
 	}
 
 	@Override
