@@ -70,6 +70,7 @@ public class TasksView extends ViewPart {
 	private final int SYNC_PAUSE = 60000;
 	private boolean isSync = true;
 	private Job syncJob;
+	private int alpha;
 	private static final String FEEDBACK_LINK = "https://github.com/dmitryberkut/jtt/issues";
 
 	public TasksView() {
@@ -378,17 +379,19 @@ public class TasksView extends ViewPart {
 				updateUI();
 			}
 		});
-		Shell shell1 = parent.getShell();
-		shell1.addShellListener(new ShellListener() {
+		final Shell shell = parent.getShell();
+		alpha = shell.getAlpha();
+		shell.addShellListener(new ShellListener() {
 
 			@Override
 			public void shellActivated(ShellEvent event) {
-				System.out.println("activate");
+				LogManager.log(Level.INFO, "TasksView", "activate with alpha: " + alpha);
+				shell.setAlpha(alpha);
 			}
 
 			@Override
 			public void shellClosed(ShellEvent arg0) {
-				System.out.println("close");
+				LogManager.log(Level.INFO, "TasksView", "close");
 				isSync = false;
 				if (syncJob != null) {
 					syncJob.cancel();
@@ -397,17 +400,18 @@ public class TasksView extends ViewPart {
 
 			@Override
 			public void shellDeactivated(ShellEvent arg0) {
-				System.out.println("Deactivate");
+				LogManager.log(Level.INFO, "TasksView", "Deactivate with alpha: " + alpha);
+				shell.setAlpha(alpha - 150);
 			}
 
 			@Override
 			public void shellDeiconified(ShellEvent arg0) {
-				System.out.println("Deiconified");
+				LogManager.log(Level.INFO, "TasksView", "Deiconified");
 			}
 
 			@Override
 			public void shellIconified(ShellEvent arg0) {
-				System.out.println("Iconified");
+				LogManager.log(Level.INFO, "TasksView", "Iconified");
 			}
 		});
 	}

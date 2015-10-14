@@ -26,8 +26,6 @@ import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.MouseWheelListener;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
-import org.eclipse.swt.events.ShellEvent;
-import org.eclipse.swt.events.ShellListener;
 import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.Color;
@@ -45,7 +43,6 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.wb.swt.SWTResourceManager;
@@ -726,43 +723,6 @@ public class TasksComposite extends Composite {
 				}
 			}
 		});
-		Shell shell1 = parent.getShell();
-		shell1.addShellListener(new ShellListener() {
-			Job job = new Job("sync of status issues") {
-				@Override
-				protected IStatus run(IProgressMonitor monitor) {
-					return Status.OK_STATUS;
-				}
-			};
-
-			@Override
-			public void shellActivated(ShellEvent event) {
-				System.out.println("activate");
-				job.schedule();
-			}
-
-			@Override
-			public void shellClosed(ShellEvent arg0) {
-				System.out.println("close");
-				job.cancel();
-			}
-
-			@Override
-			public void shellDeactivated(ShellEvent arg0) {
-				System.out.println("Deactivate");
-			}
-
-			@Override
-			public void shellDeiconified(ShellEvent arg0) {
-				System.out.println("Deiconified");
-			}
-
-			@Override
-			public void shellIconified(ShellEvent arg0) {
-				System.out.println("Iconified");
-			}
-		});
-
 	}
 
 	private void updateLogWorkFromTextbox() {
