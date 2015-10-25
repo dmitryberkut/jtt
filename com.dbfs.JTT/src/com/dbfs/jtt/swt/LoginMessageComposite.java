@@ -95,7 +95,7 @@ public class LoginMessageComposite extends Composite {
 		gc.fillRectangle(0, 0, imageMessage.getImageData().width, imageMessage.getImageData().height);
 		gc.setBackground(ColorSchemes.loginMsgBackgroundColor);
 		gc.fillRoundRectangle(LEFT_OFFSET, TOP_OFFSET, widthComposite - LEFT_OFFSET - RIGHT_OFFSET, heightComposite - TOP_OFFSET - BOTTOM_OFFSET, 5, 5);
-		gc.setForeground(ColorSchemes.loginMsgForgraundColor);
+		gc.setForeground(ColorSchemes.loginMsgForegraundColor);
 		gc.drawRoundRectangle(LEFT_OFFSET, TOP_OFFSET, widthComposite - LEFT_OFFSET - RIGHT_OFFSET, heightComposite - TOP_OFFSET - BOTTOM_OFFSET, 5, 5);
 		gc.setForeground(ColorSchemes.loginMsgTextColor);
 		gc.setFont(typeFont);

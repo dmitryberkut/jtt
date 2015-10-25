@@ -89,7 +89,7 @@ public class TasksView extends ViewPart {
 		queue = new ConcurrentLinkedQueue<Task>(tasks);
 		for (int i = 0; i < NUM_OF_UPDATE_THREADS; i++) {
 			Job job = new UpdateTasksJob("Update issues " + i);
-			job.schedule();
+			job.schedule(/*i * 100*/);
 		}
 		syncJob = new SyncJob("SyncJob");
 		syncJob.schedule();

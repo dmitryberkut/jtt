@@ -4,6 +4,9 @@ import java.util.concurrent.TimeUnit;
 
 public class Task {
 	private final static int HOURS_PER_DAY = 8;
+	public final static int PRIORITY_HIGH = 1;
+	public final static int PRIORITY_NORM = 2;
+	public final static int PRIORITY_LOW = 3;
 	private String key;
 	private String url;
 	private String urlParent;
@@ -21,6 +24,7 @@ public class Task {
 	private String parentSum;
 	private String comment = "";
 	private long added = 0l;
+	private int priority;
 
 	public String getParentKey() {
 		return parentKey;
@@ -78,6 +82,7 @@ public class Task {
 
 	public void setKey(String key) {
 		this.key = key;
+		priority = PRIORITY_NORM;
 	}
 
 	public String getUrl() {
@@ -101,8 +106,9 @@ public class Task {
 	}
 
 	public void setDescription(String description) {
-		if (description != null)
+		if (description != null) {
 			this.description = description;
+		}
 	}
 
 	public long getTimeEstimated() {
@@ -185,6 +191,14 @@ public class Task {
 		this.added = added;
 	}
 
+	public int getPriority() {
+		return priority;
+	}
+
+	public void setPriority(int priority) {
+		this.priority = priority;
+	}
+
 	public static String millisecondsToDHM(long millisec) {
 		long m = TimeUnit.MILLISECONDS.toMinutes(millisec);
 		long h = TimeUnit.MILLISECONDS.toHours(millisec);
@@ -203,6 +217,6 @@ public class Task {
 
 	@Override
 	public boolean equals(Object obj) {
-		return (obj instanceof Task && ((Task) obj).getKey().equals(this.getKey()));
+		return ((obj instanceof Task) && ((Task) obj).getKey().equals(getKey()));
 	}
 }

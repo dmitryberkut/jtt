@@ -17,6 +17,7 @@ public class TaskItem {
 	private int linkParentY;
 	private int linkWidth;
 	private int linkParentWidth;
+	private int priorityBtnY;
 
 	public TaskItem(Rectangle btnT, Rectangle btnL, Rectangle txtL, Rectangle brdL, Rectangle link) {
 		setBtnTimer(btnT);
@@ -140,5 +141,13 @@ public class TaskItem {
 
 	public void setLinkParentWidth(int linkParentWidth) {
 		this.linkParentWidth = linkParentWidth;
+	}
+
+	public int getPriorityNormalBtnY() {
+		return priorityBtnY;
+	}
+
+	public void setPriorityNormalBtnY(int priorityBtnY) {
+		this.priorityBtnY = priorityBtnY;
 	}
 }
