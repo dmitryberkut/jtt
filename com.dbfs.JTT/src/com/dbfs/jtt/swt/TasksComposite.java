@@ -45,6 +45,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.wb.swt.SWTResourceManager;
@@ -800,6 +801,15 @@ public class TasksComposite extends Composite {
 					resizeTaskItem(i);
 					drawItem(i);
 				}
+			}
+		});
+		Shell shell1 = parent.getShell();
+		shell1.addListener(SWT.MouseExit, new Listener() {
+			@Override
+			public void handleEvent(Event e) {
+				indxUnderCursor = -1;
+				sortTasks();
+				redraw();
 			}
 		});
 	}
@@ -1763,6 +1773,7 @@ public class TasksComposite extends Composite {
 		Collections.sort(tasks, taskPriorityComparator);
 		for (int i = 0; i < tasks.size(); i++) {
 			resizeTaskItem(i);
+			eraseItem(i);
 			drawItem(i);
 		}
 		if (task != null) {
