@@ -17,7 +17,9 @@ public class TaskItem {
 	private int linkParentY;
 	private int linkWidth;
 	private int linkParentWidth;
-	private int priorityBtnY;
+	private int normPriorBtnY;
+	private int lowPriorBtnY;
+	private int highPriorBtnY;
 
 	public TaskItem(Rectangle btnT, Rectangle btnL, Rectangle txtL, Rectangle brdL, Rectangle link) {
 		setBtnTimer(btnT);
@@ -143,11 +145,27 @@ public class TaskItem {
 		this.linkParentWidth = linkParentWidth;
 	}
 
-	public int getPriorityNormalBtnY() {
-		return priorityBtnY;
+	public int getNormPriorBtnY() {
+		return normPriorBtnY;
 	}
 
-	public void setPriorityNormalBtnY(int priorityBtnY) {
-		this.priorityBtnY = priorityBtnY;
+	public void setNormPriorBtnY(int normPriorBtnY) {
+		this.normPriorBtnY = normPriorBtnY;
+	}
+
+	public int getLowPriorBtnY() {
+		return lowPriorBtnY;
+	}
+
+	public void setLowPriorBtnY(int lowPriorBtnY) {
+		this.lowPriorBtnY = lowPriorBtnY;
+	}
+
+	public int getHighPriorBtnY() {
+		return highPriorBtnY;
+	}
+
+	public void setHighPriorBtnY(int highPriorBtnY) {
+		this.highPriorBtnY = highPriorBtnY;
 	}
 }

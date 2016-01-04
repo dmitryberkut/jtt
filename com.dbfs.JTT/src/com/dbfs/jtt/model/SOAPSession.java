@@ -377,7 +377,7 @@ public class SOAPSession implements IAdaptable {
 		LogManager.log(Level.INFO, "", "jqlQuery = '" + jqlQuery + "'");
 		SearchRestClient searchClient = restClient.getSearchClient();
 		LogManager.log(Level.INFO, "", "try to get searchResult...");
-		return searchClient.searchJql(jqlQuery, pm);
+		return searchClient.searchJql(jqlQuery, 1000, 0, pm);
 	}
 
 	public void getTasksFromJqlSearch(IProgressMonitor monitor) throws RestClientException {

@@ -155,6 +155,7 @@ public class TasksComposite extends Composite {
 	private Font loggedTimeFont;
 	private Font linkFont;
 	private Font linkParentFont;
+	private Font countTaskFont;
 	private Font descFont;
 	private Font logWorkFont;
 	private Display display;
@@ -436,13 +437,13 @@ public class TasksComposite extends Composite {
 					drawTxtLogWork(indxSelectedItem);
 				}
 				// TODO Start identifying cursor.
-				if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getItemY() + 3, PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getHighPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					addMouseStatus(MOUSE_DOWN_PRIOR_HIGH_BTN);
 					drawPriorityHighBtn(indxUnderCursor);
-				} else if (isOnArea(e, LEFT_OFFSET, (taskItems.get(indxUnderCursor).getItemY() + ITEM_HEIGHT) - PRIOR_CHECKBOX_HEIGHT - 3, PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				} else if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getLowPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					addMouseStatus(MOUSE_DOWN_PRIOR_LOW_BTN);
 					drawPriorityLowBtn(indxUnderCursor);
-				} else if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getPriorityNormalBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				} else if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getNormPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					addMouseStatus(MOUSE_DOWN_PRIOR_NORM_BTN);
 					drawPriorityNormBtn(indxUnderCursor);
 				} else if ((startY > 0) && (e.x > (linkX + LEFT_OFFSET_SHIFT)) && (e.x < (LEFT_OFFSET_SHIFT + linkX + taskItems.get(indxUnderCursor).getLinkParentWidth())) && ((e.y + scroll) > taskItems.get(indxUnderCursor).getParentLinkY()) && ((e.y + scroll) < (taskItems.get(indxUnderCursor).getParentLinkY() + linkParentTextHeight))) {
@@ -508,7 +509,7 @@ public class TasksComposite extends Composite {
 					drawItem(indxSelectedItem);
 				}
 				// Start identifying cursor
-				if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getItemY() + 3, PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getHighPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					if (isMouseStatus(MOUSE_DOWN_PRIOR_HIGH_BTN)) {
 						// TODO MouseUp on high priority
 						tasks.get(indxUnderCursor).setPriority(Task.PRIORITY_HIGH);
@@ -516,7 +517,7 @@ public class TasksComposite extends Composite {
 						drawPriorityHighBtn(indxUnderCursor);
 						sortTasks();
 					}
-				} else if (isOnArea(e, LEFT_OFFSET, (taskItems.get(indxUnderCursor).getItemY() + ITEM_HEIGHT) - PRIOR_CHECKBOX_HEIGHT - 3, PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				} else if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getLowPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					if (isMouseStatus(MOUSE_DOWN_PRIOR_LOW_BTN)) {
 						// TODO MouseUp on low priority
 						tasks.get(indxUnderCursor).setPriority(Task.PRIORITY_LOW);
@@ -524,7 +525,7 @@ public class TasksComposite extends Composite {
 						drawPriorityLowBtn(indxUnderCursor);
 						sortTasks();
 					}
-				} else if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getPriorityNormalBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				} else if (isOnArea(e, LEFT_OFFSET, taskItems.get(indxUnderCursor).getNormPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					if (isMouseStatus(MOUSE_DOWN_PRIOR_NORM_BTN)) {
 						// TODO MouseUp on normal priority
 						tasks.get(indxUnderCursor).setPriority(Task.PRIORITY_NORM);
@@ -638,21 +639,21 @@ public class TasksComposite extends Composite {
 					startX = SUB_ITEM_OFFSET_X;
 				}
 				// TODO Start identifying cursor
-				if (isOnArea(arg, LEFT_OFFSET, taskItems.get(indxUnderCursor).getItemY() + 3, PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				if (isOnArea(arg, LEFT_OFFSET, taskItems.get(indxUnderCursor).getHighPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					if (isMouseStatus(MOUSE_OVER_PRIOR_HIGH_BTN) || isMouseStatus(MOUSE_DOWN_PRIOR_HIGH_BTN)) {
 						return;
 					}
 					setCursor(CURSOR_ARROW);
 					addMouseStatus(MOUSE_OVER_PRIOR_HIGH_BTN);
 					drawPriorityHighBtn(indxUnderCursor);
-				} else if (isOnArea(arg, LEFT_OFFSET, (taskItems.get(indxUnderCursor).getItemY() + ITEM_HEIGHT) - PRIOR_CHECKBOX_HEIGHT - 3, PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				} else if (isOnArea(arg, LEFT_OFFSET, taskItems.get(indxUnderCursor).getLowPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					if (isMouseStatus(MOUSE_OVER_PRIOR_LOW_BTN) || isMouseStatus(MOUSE_DOWN_PRIOR_LOW_BTN)) {
 						return;
 					}
 					setCursor(CURSOR_ARROW);
 					addMouseStatus(MOUSE_OVER_PRIOR_LOW_BTN);
 					drawPriorityLowBtn(indxUnderCursor);
-				} else if (isOnArea(arg, LEFT_OFFSET, taskItems.get(indxUnderCursor).getPriorityNormalBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
+				} else if (isOnArea(arg, LEFT_OFFSET, taskItems.get(indxUnderCursor).getNormPriorBtnY(), PRIOR_CHECKBOX_WIDTH, PRIOR_CHECKBOX_HEIGHT)) {
 					if (isMouseStatus(MOUSE_OVER_PRIOR_NORM_BTN) || isMouseStatus(MOUSE_DOWN_PRIOR_NORM_BTN)) {
 						return;
 					}
@@ -974,7 +975,9 @@ public class TasksComposite extends Composite {
 		btnTimerX = width - BTN_TIMER_OFFSET - BTN_TIMER_WIDTH;
 		taskItems.get(indx).setItemY((indx * ITEM_HEIGHT) + ITEM_OFFSET);
 		taskItems.get(indx).setBtnTimerY(taskItems.get(indx).getItemY() + BTN_TIMER_OFFSET);
-		taskItems.get(indx).setPriorityNormalBtnY(taskItems.get(indx).getItemY() + ((ITEM_HEIGHT - PRIOR_CHECKBOX_HEIGHT) / 2));
+		taskItems.get(indx).setNormPriorBtnY((taskItems.get(indx).getItemY() + ITEM_HEIGHT) - (PRIOR_CHECKBOX_HEIGHT * 2) - 5);
+		taskItems.get(indx).setLowPriorBtnY((taskItems.get(indx).getItemY() + ITEM_HEIGHT) - PRIOR_CHECKBOX_HEIGHT - 3);
+		taskItems.get(indx).setHighPriorBtnY((taskItems.get(indx).getItemY() + ITEM_HEIGHT) - (PRIOR_CHECKBOX_HEIGHT * 3) - 7);
 		btnLogWorkX = (btnTimerX - LOG_WORK_OFFSET - LOG_WORK_WIDTH) + LOG_WORK_PADDING;
 		taskItems.get(indx).setBtnLogworkY(taskItems.get(indx).getBtnTimerY() + (LOG_WORK_PADDING * 2) + standardTextHeight);
 		txtLogWorkX = btnLogWorkX;
@@ -1009,7 +1012,9 @@ public class TasksComposite extends Composite {
 		taskItems.get(indx).setTxtLogworkY(taskItems.get(indx).getBtnTimerY() + LOG_WORK_PADDING);
 		taskItems.get(indx).setLinkY(taskItems.get(indx).getItemY() + LINK_OFFSET);
 		taskItems.get(indx).setParentLinkY(taskItems.get(indx).getItemY());
-		taskItems.get(indx).setPriorityNormalBtnY(taskItems.get(indx).getItemY() + ((ITEM_HEIGHT - PRIOR_CHECKBOX_HEIGHT) / 2));
+		taskItems.get(indx).setNormPriorBtnY((taskItems.get(indx).getItemY() + ITEM_HEIGHT) - (PRIOR_CHECKBOX_HEIGHT * 2) - 5);
+		taskItems.get(indx).setLowPriorBtnY((taskItems.get(indx).getItemY() + ITEM_HEIGHT) - PRIOR_CHECKBOX_HEIGHT - 3);
+		taskItems.get(indx).setHighPriorBtnY((taskItems.get(indx).getItemY() + ITEM_HEIGHT) - (PRIOR_CHECKBOX_HEIGHT * 3) - 7);
 	}
 
 	/**
@@ -1055,6 +1060,8 @@ public class TasksComposite extends Composite {
 						|| isMouseStatus(MOUSE_OUT_ITEM))) {
 			leftOffset += LEFT_OFFSET_SHIFT;
 			linkX += LEFT_OFFSET_SHIFT;
+			tCompGC.setFont(countTaskFont);
+			tCompGC.drawText(String.valueOf(indx + 1), 0, taskItems.get(indx).getItemY() - scroll, true);
 			drawPriorityNormBtn(indx);
 			drawPriorityHighBtn(indx);
 			drawPriorityLowBtn(indx);
@@ -1379,15 +1386,15 @@ public class TasksComposite extends Composite {
 	}
 
 	protected void drawPriorityNormBtn(int indx) {
-		drawPriorityBtn(indx, taskItems.get(indx).getPriorityNormalBtnY(), Task.PRIORITY_NORM);
+		drawPriorityBtn(indx, taskItems.get(indx).getNormPriorBtnY(), Task.PRIORITY_NORM);
 	}
 
 	protected void drawPriorityHighBtn(int indx) {
-		drawPriorityBtn(indx, taskItems.get(indx).getItemY() + 3, Task.PRIORITY_HIGH);
+		drawPriorityBtn(indx, taskItems.get(indx).getHighPriorBtnY(), Task.PRIORITY_HIGH);
 	}
 
 	protected void drawPriorityLowBtn(int indx) {
-		drawPriorityBtn(indx, (taskItems.get(indx).getItemY() + ITEM_HEIGHT) - PRIOR_CHECKBOX_HEIGHT - 3, Task.PRIORITY_LOW);
+		drawPriorityBtn(indx, taskItems.get(indx).getLowPriorBtnY(), Task.PRIORITY_LOW);
 	}
 
 	protected void drawBtnStart(int indx) {
@@ -1585,6 +1592,7 @@ public class TasksComposite extends Composite {
 		descFont = new Font(display, "Arial", 11, SWT.ITALIC);
 		linkFont = new Font(display, "Arial", 10, SWT.BOLD);
 		linkParentFont = new Font(display, "Arial", 8, SWT.BOLD);
+		countTaskFont = new Font(display, "Arial", 8, SWT.ITALIC);
 		tCompGC.setFont(linkParentFont);
 		linkParentTextHeight = tCompGC.getFontMetrics().getHeight();
 		tCompGC.setFont(linkFont);
