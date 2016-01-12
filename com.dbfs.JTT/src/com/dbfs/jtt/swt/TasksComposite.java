@@ -60,6 +60,7 @@ import com.dbfs.jtt.model.Task;
 import com.dbfs.jtt.resources.ColorSchemes;
 import com.dbfs.jtt.resources.IImageKeys;
 import com.dbfs.jtt.util.LogManager;
+import com.dbfs.jtt.util.SoundUtil;
 
 public class TasksComposite extends Composite {
 	private final Logger logger = Logger.getLogger(TasksComposite.class.getName());
@@ -178,6 +179,9 @@ public class TasksComposite extends Composite {
 	private final static String TOOL_TIP_TEXT_TIMER_BTN_RUNNING = "Minimum spent time: " + MINIMUM_SPENT_TIME_MINUTES + " min\nWorkLog Comment: ";
 	private final static String TOOL_TIP_TEXT_MINI_BTN_RUNNING = "Suspend work on task ";
 	private final static String TOOL_TIP_TEXT_MINI_BTN = "Start work log with Comment";
+	private final static String STOP_TIMER_SOUND = "icons/beep_short_off.wav";
+	private final static String START_TIMER_SOUND = "icons/beep_short_on.wav";
+	private final static String NEW_TASK_SOUND = "icons/pad_confirm.wav";
 
 	/**
 	 * Create the composite.
@@ -605,8 +609,12 @@ public class TasksComposite extends Composite {
 			private void toggleTimer(int index) {
 				Task task = tasks.get(index);
 				stopped = task.isRunning();
+				if (stopped) {
+					new SoundUtil(STOP_TIMER_SOUND).start();
+				}
 				task.setRunning(!task.isRunning());
 				if (task.isRunning()) {
+					new SoundUtil(START_TIMER_SOUND).start();
 					indxRunningItem = index;
 					task.setStartedTimer(System.currentTimeMillis() - task.getCurrentTimeSpent());
 					setActiveTask(task);
@@ -1045,7 +1053,6 @@ public class TasksComposite extends Composite {
 		if ((tasks.size() == 0) || (taskItems.size() == 0) || ((taskItems.get(indx).getItemY() + ITEM_HEIGHT) <= scroll) || (taskItems.get(indx).getItemY() >= (scroll + heightComposite))) {
 			return;
 		}
-		System.out.println("drawItem");
 		int startY = 0;
 		int startX = 0;
 		if (tasks.get(indx).getParentKey() != null) {
@@ -1529,6 +1536,7 @@ public class TasksComposite extends Composite {
 	}
 
 	public void addTask(Task task) {
+		new SoundUtil(NEW_TASK_SOUND).start();
 		if (indxRunningItem > -1) {
 			indxRunningItem++;
 		}
