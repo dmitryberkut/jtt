@@ -2,6 +2,8 @@ package com.dbfs.jtt.util;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Collections;
+import java.util.logging.Level;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -11,7 +13,7 @@ import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineListener;
 
 import org.eclipse.core.runtime.FileLocator;
-import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.Path;
 import org.osgi.framework.Bundle;
 
 import com.dbfs.jtt.Activator;
@@ -32,9 +34,12 @@ public class SoundUtil extends Thread implements LineListener {
 	private void play(String filePath) {
 		AudioInputStream inpunStream = null;
 		try {
-			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
-			URL fileURL = bundle.getEntry(filePath);
-			File file = new File(FileLocator.resolve(fileURL).toURI());
+			Bundle bundle = Activator.getDefault().getBundle();
+			Path path = new Path(filePath);
+			URL url = FileLocator.find(bundle, path, Collections.EMPTY_MAP);
+			URL fileUrl = FileLocator.toFileURL(url);
+			File file = new File(fileUrl.getPath());
+			LogManager.log(Level.ALL, "SoundUtil", "Play Sound: " + fileUrl.getPath());
 			inpunStream = AudioSystem.getAudioInputStream(file);
 			DataLine.Info info = new DataLine.Info(Clip.class, inpunStream.getFormat());
 			Clip audioClip = (Clip) AudioSystem.getLine(info);
