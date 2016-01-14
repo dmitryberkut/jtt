@@ -17,13 +17,10 @@ import java.util.regex.Pattern;
 import org.apache.log4j.Logger;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.ShellEvent;
-import org.eclipse.swt.events.ShellListener;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
@@ -33,7 +30,6 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.ProgressBar;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Slider;
 import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.PartInitException;
@@ -71,7 +67,7 @@ public class TasksView extends ViewPart {
 	private Slider slider;
 	private final int NUM_OF_UPDATE_THREADS = 7;
 	private final int SYNC_PAUSE = 60000;
-	private boolean isSync = true;
+	private final boolean isSync = true;
 	private Job syncJob;
 	private int alpha;
 	private static final String FEEDBACK_LINK = "https://github.com/dmitryberkut/jtt/issues";
@@ -154,7 +150,7 @@ public class TasksView extends ViewPart {
 					LogManager.logStack(e);
 				}
 			}
-			return Status.OK_STATUS;
+			// TODO return Status.OK_STATUS;
 		}
 
 	}
@@ -167,6 +163,9 @@ public class TasksView extends ViewPart {
 			Display.getDefault().asyncExec(new Runnable() {
 				@Override
 				public void run() {
+					if (progressBar.isDisposed() || tasksComposite.isDisposed()) {
+						return;
+					}
 					progressBar.setSelection(indx++);
 					progressBar.setToolTipText(indx + " / " + tasks.size());
 					int taskIndx = tasksComposite.getTaskIndx(task);
@@ -357,7 +356,7 @@ public class TasksView extends ViewPart {
 				updateUI();
 			}
 		});
-		final Shell shell = parent.getShell();
+		/*final Shell shell = parent.getShell();
 		// alpha = shell.getAlpha();
 		shell.addShellListener(new ShellListener() {
 
@@ -391,7 +390,7 @@ public class TasksView extends ViewPart {
 			public void shellIconified(ShellEvent arg0) {
 				LogManager.log(Level.INFO, "TasksView", "Iconified");
 			}
-		});
+		});*/
 
 		queue = new ConcurrentLinkedQueue<Task>(tasks);
 		startStop(true);
@@ -444,6 +443,7 @@ public class TasksView extends ViewPart {
 	private void startStop(boolean isStart) {
 		progressBar.setVisible(isStart);
 		slider.setEnabled(!isStart);
+		slider.setTouchEnabled(!isStart);
 		if (isStart) {
 			progressBar.setMinimum(0);
 			progressBar.setMaximum(tasks.size());
