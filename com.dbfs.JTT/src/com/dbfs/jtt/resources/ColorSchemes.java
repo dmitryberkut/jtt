@@ -40,4 +40,7 @@ public class ColorSchemes {
 	public static Color taskPriorityBtnOverHighColor = Display.getCurrent().getSystemColor(SWT.COLOR_RED);
 	public static Color taskPriorityBtnOverNormalColor = Display.getCurrent().getSystemColor(SWT.COLOR_DARK_BLUE);
 	public static Color taskPriorityBtnOverLowColor = Display.getCurrent().getSystemColor(SWT.COLOR_DARK_GREEN);
+	public static Color EstimatedTaskColor = new Color(Display.getCurrent(), 138, 176, 212);
+	public static Color RemainingTaskColor = new Color(Display.getCurrent(), 235, 141, 0);
+	public static Color LoggedTaskColor = new Color(Display.getCurrent(), 83, 166, 38);
 }

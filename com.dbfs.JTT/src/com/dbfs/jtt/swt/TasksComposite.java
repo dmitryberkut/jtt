@@ -118,6 +118,7 @@ public class TasksComposite extends Composite {
 	private final int LINK_OFFSET = 5;
 	private final int LOG_WORK_OFFSET = 5;
 	private final int LOG_WORK_WIDTH = 55;
+	private final int LOG_WORK_WIDTH_DIAGRAM = 100;
 	private final int LOG_WORK_PADDING = 4;
 	private final int LOG_WORK_TEXT_BOX_WIDTH = 30;
 
@@ -1053,7 +1054,7 @@ public class TasksComposite extends Composite {
 		if ((tasks.size() == 0) || (taskItems.size() == 0) || ((taskItems.get(indx).getItemY() + ITEM_HEIGHT) <= scroll) || (taskItems.get(indx).getItemY() >= (scroll + heightComposite))) {
 			return;
 		}
-		int startY = 0;
+		int startY = 5;
 		int startX = 0;
 		if (tasks.get(indx).getParentKey() != null) {
 			startX = SUB_ITEM_OFFSET_X;
@@ -1067,8 +1068,10 @@ public class TasksComposite extends Composite {
 						|| isMouseStatus(MOUSE_OUT_ITEM))) {
 			leftOffset += LEFT_OFFSET_SHIFT;
 			linkX += LEFT_OFFSET_SHIFT;
+			Font prevFont = tCompGC.getFont();
 			tCompGC.setFont(countTaskFont);
 			tCompGC.drawText(String.valueOf(indx + 1), 0, taskItems.get(indx).getItemY() - scroll, true);
+			tCompGC.setFont(prevFont);
 			drawPriorityNormBtn(indx);
 			drawPriorityHighBtn(indx);
 			drawPriorityLowBtn(indx);
@@ -1158,29 +1161,41 @@ public class TasksComposite extends Composite {
 
 	private void drawTimeEstimation(int indx) {
 		tCompGC.setFont(loggedTimeFont);
-		int startY = 0;
+		int startY = -4;
 		int startX = 0;
 		if (tasks.get(indx).getParentKey() != null) {
-			startY = SUB_ITEM_HEIGHT;
+			// startY = SUB_ITEM_HEIGHT;
 			startX = SUB_ITEM_OFFSET_X;
+			return;// TODO Change only lines for parent tasks!
 		}
-		String estTime = "Estimated: " + Task.millisecondsToDHM(tasks.get(indx).getTimeEstimated());
-		String spTime = "Actual: " + (tasks.get(indx).getFormatedTimeSpent() != null ? tasks.get(indx).getFormatedTimeSpent() : Task.millisecondsToDHM(tasks.get(indx).getTimeSpent()));
+		if ((indx == indxUnderCursor) &&
+				(isMouseStatus(MOUSE_OVER_ITEM)
+						|| isMouseStatus(MOUSE_OVER_LINK)
+						|| isMouseStatus(MOUSE_OVER_PARENT_LINK)
+						|| isMouseStatus(MOUSE_OUT_ITEM))) {
+			startX += LEFT_OFFSET_SHIFT;
+		}
+		String estTime1 = "Estimated:";
+		String estTime2 = Task.millisecondsToDHM(tasks.get(indx).getTimeEstimated());
+		String remTime1 = "Remaining:";
+		String remTime2 = Task.millisecondsToDHM(tasks.get(indx).getTimeRemaining());
+		String spTime1 = "Logged:";
+		String spTime2 = (tasks.get(indx).getFormatedTimeSpent() != null ? tasks.get(indx).getFormatedTimeSpent() : Task.millisecondsToDHM(tasks.get(indx).getTimeSpent()));
 		int estWidth = 0;
 		int spWidth = 0;
 		int x = 0;
-		for (int i = 0; i < estTime.length(); i++) {
-			x += tCompGC.getCharWidth(estTime.charAt(i));
+		for (int i = 0; i < estTime1.length(); i++) {
+			x += tCompGC.getCharWidth(estTime1.charAt(i));
 		}
 		estWidth = x + 9;
 		x = 0;
-		for (int i = 0; i < spTime.length(); i++) {
-			x += tCompGC.getCharWidth(spTime.charAt(i));
+		for (int i = 0; i < spTime1.length(); i++) {
+			x += tCompGC.getCharWidth(spTime1.charAt(i));
 		}
 		spWidth = x + 9;
 
-		Color backgroundColor = ColorSchemes.taskNormalPriorityItemBackgroundColor;
-		switch (tasks.get(indx).getPriority()) {
+		Color backgroundColor = ColorSchemes.taskColor;// ColorSchemes.taskNormalPriorityItemBackgroundColor;
+		/*switch (tasks.get(indx).getPriority()) {
 		case Task.PRIORITY_HIGH: {
 			backgroundColor = ColorSchemes.taskHighPriorityItemBackgroundColor;
 			break;
@@ -1189,14 +1204,55 @@ public class TasksComposite extends Composite {
 			backgroundColor = ColorSchemes.taskLowPriorityItemBackgroundColor;
 			break;
 		}
-		}
+		}*/
+		// tCompGC.setBackground(backgroundColor);
+		// tCompGC.fillRectangle(linkX + startX + taskItems.get(indx).getLinkWidth() + 10, (taskItems.get(indx).getLinkY() + startY + 2) - scroll, estWidth, linkHeight);
+		// tCompGC.fillRectangle(linkX + startX + taskItems.get(indx).getLinkWidth() + 20 + estWidth, (taskItems.get(indx).getLinkY() + startY + 2) - scroll, spWidth + 20, linkHeight);
+		// tCompGC.fillRectangle(linkX + startX + taskItems.get(indx).getLinkWidth() + 10, (taskItems.get(indx).getLinkY() + startY + standardTextHeight) - scroll, spWidth + 20, linkHeight);
+		int offsetX = 20;
 		tCompGC.setBackground(backgroundColor);
-		tCompGC.fillRectangle(linkX + startX + taskItems.get(indx).getLinkWidth() + 10, (taskItems.get(indx).getLinkY() + startY + 2) - scroll, estWidth, linkHeight);
-		tCompGC.fillRectangle(linkX + startX + taskItems.get(indx).getLinkWidth() + 20 + estWidth, (taskItems.get(indx).getLinkY() + startY + 2) - scroll, spWidth + 20, linkHeight);
-		tCompGC.fillRectangle(linkX + startX + taskItems.get(indx).getLinkWidth() + 10, (taskItems.get(indx).getLinkY() + startY + standardTextHeight) - scroll, spWidth + 20, linkHeight);
 		tCompGC.setForeground(ColorSchemes.taskStartTextColor);
-		tCompGC.drawText(estTime, linkX + startX + taskItems.get(indx).getLinkWidth() + 10, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
-		tCompGC.drawText("Current Spent: " + TimeUnit.MILLISECONDS.toMinutes(tasks.get(indx).getCurrentTimeSpent()) + "m", linkX + startX + taskItems.get(indx).getLinkWidth() + 20 + estWidth, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
+		int x1 = linkX + startX + taskItems.get(indx).getLinkWidth() + offsetX;
+		int ye = taskItems.get(indx).getLinkY() - scroll;
+		int yr = (taskItems.get(indx).getLinkY() + tCompGC.getFontMetrics().getHeight()) - 4 - scroll;
+		int yl = (taskItems.get(indx).getLinkY() + (tCompGC.getFontMetrics().getHeight() * 2)) - 8 - scroll;
+		tCompGC.fillRectangle(x1 + estWidth, ye, LOG_WORK_WIDTH_DIAGRAM, 8);
+		tCompGC.fillRectangle(x1 + estWidth, yr, LOG_WORK_WIDTH_DIAGRAM, 8);
+		tCompGC.fillRectangle(x1 + estWidth, yl, LOG_WORK_WIDTH_DIAGRAM, 8);
+		float estimatedPart = tasks.get(indx).getTimeEstimated();
+		float remainingPart = tasks.get(indx).getTimeRemaining();
+		float loggedPart = tasks.get(indx).getTimeSpent();
+		float fullPart = 0;
+		if (estimatedPart < (remainingPart + loggedPart)) {
+			fullPart = remainingPart + loggedPart;
+		} else {
+			fullPart = estimatedPart;
+		}
+		int estimatedWidth = 0;
+		int remainingWidth = 0;
+		int logggggedWidth = 0;
+		if (fullPart > 0) {
+			estimatedWidth = (int) ((estimatedPart / fullPart) * LOG_WORK_WIDTH_DIAGRAM);
+			remainingWidth = (int) ((remainingPart / fullPart) * LOG_WORK_WIDTH_DIAGRAM);
+			logggggedWidth = (int) ((loggedPart / fullPart) * LOG_WORK_WIDTH_DIAGRAM);
+		}
+		// Draw blue estimated rectangle
+		tCompGC.setBackground(ColorSchemes.EstimatedTaskColor);
+		tCompGC.fillRectangle(x1 + estWidth, ye, estimatedWidth, 8);
+		// Draw orange remaining rectangle
+		tCompGC.setBackground(ColorSchemes.RemainingTaskColor);
+		tCompGC.fillRectangle(x1 + estWidth + logggggedWidth, yr, remainingWidth, 8);
+		// Draw green logged rectangle
+		tCompGC.setBackground(ColorSchemes.LoggedTaskColor);
+		tCompGC.fillRectangle(x1 + estWidth, yl, logggggedWidth, 8);
+		// Draw text Estimated
+		tCompGC.drawText(estTime1, x1, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
+		tCompGC.drawText(estTime2, x1 + estWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
+		// Draw text Remaining
+		tCompGC.drawText(remTime1, x1, (taskItems.get(indx).getLinkY() + startY + tCompGC.getFontMetrics().getHeight()) - 4 - scroll, true);
+		tCompGC.drawText(remTime2, x1 + estWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY + tCompGC.getFontMetrics().getHeight()) - 4 - scroll, true);
+
+		// tCompGC.drawText("Current Spent: " + TimeUnit.MILLISECONDS.toMinutes(tasks.get(indx).getCurrentTimeSpent()) + "m", linkX + startX + taskItems.get(indx).getLinkWidth() + 20 + estWidth, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
 		if ((tasks.get(indx).getTimeSpent() - tasks.get(indx).getTimeEstimated()) > 0) {
 			if ((tasks.get(indx).getTimeSpent() - tasks.get(indx).getTimeEstimated()) > tasks.get(indx).getTimeEstimated()) {
 				tCompGC.setForeground(ColorSchemes.time2OverTextColor);
@@ -1204,7 +1260,8 @@ public class TasksComposite extends Composite {
 				tCompGC.setForeground(ColorSchemes.timeOverTextColor);
 			}
 		}
-		tCompGC.drawText(spTime, linkX + startX + taskItems.get(indx).getLinkWidth() + 10, (taskItems.get(indx).getLinkY() + startY + standardTextHeight) - 3 - scroll, true);
+		tCompGC.drawText(spTime1, x1, (taskItems.get(indx).getLinkY() + startY + (tCompGC.getFontMetrics().getHeight() * 2)) - 8 - scroll, true);
+		tCompGC.drawText(spTime2, x1 + estWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY + (tCompGC.getFontMetrics().getHeight() * 2)) - 8 - scroll, true);
 		redraw(linkX + taskItems.get(indx).getLinkWidth() + 10, taskItems.get(indx).getLinkY() - scroll, btnTimerX - LOG_WORK_OFFSET - LOG_WORK_WIDTH - taskItems.get(indx).getLinkWidth(), linkHeight + standardTextHeight, false);
 	}
 
@@ -1228,7 +1285,7 @@ public class TasksComposite extends Composite {
 		tCompGC.drawText(tasks.get(indx).getKey(), linkX + startX, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
 		tCompGC.setFont(prevFont);
 		tCompGC.drawLine(linkX + startX, (taskItems.get(indx).getLinkY() + startY + linkHeight) - scroll, linkX + startX + taskItems.get(indx).getLinkWidth(), (taskItems.get(indx).getLinkY() + startY + linkHeight) - scroll);
-		redraw(linkX, taskItems.get(indx).getLinkY() - scroll, taskItems.get(indx).getLinkWidth(), linkHeight, false);
+		redraw(linkX, taskItems.get(indx).getLinkY() - scroll, taskItems.get(indx).getLinkWidth() + 50, linkHeight, false);
 	}
 
 	protected void drawTxtLogWork(int indx) {

@@ -325,13 +325,15 @@ public class SOAPSession implements IAdaptable {
 		Issue issue = restClient.getIssueClient().getIssue(task.getKey(), pm);
 		TimeTracking tt = issue.getTimeTracking();
 		long oe = tt.getOriginalEstimateMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getOriginalEstimateMinutes()) : 0;
-		long ts = tt.getTimeSpentMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getTimeSpentMinutes()) : 0;
+		long tr = tt.getRemainingEstimateMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getRemainingEstimateMinutes()) : 0;
+		long tl = tt.getTimeSpentMinutes() != null ? TimeUnit.MINUTES.toSeconds(tt.getTimeSpentMinutes()) : 0;
 		String status = issue.getStatus().getName();
 		task.setProjectName(issue.getProject().getName());
 		task.setUrl(connectionDetails.getServer() + "/browse/" + task.getKey());
 		task.setDescription(issue.getSummary());
 		task.setTimeEstimated(String.valueOf(oe).length() <= 2 ? TimeUnit.HOURS.toMillis(oe) : TimeUnit.SECONDS.toMillis(oe));
-		task.setTimeSpent(TimeUnit.SECONDS.toMillis(ts));
+		task.setTimeRemaining(String.valueOf(tr).length() <= 2 ? TimeUnit.HOURS.toMillis(tr) : TimeUnit.SECONDS.toMillis(tr));
+		task.setTimeSpent(TimeUnit.SECONDS.toMillis(tl));
 		task.setStatus(status);
 		LogManager.log(Level.INFO, "", task.getKey() + " | " + issue.getProject().getName() + " | " + issue.getSummary());
 

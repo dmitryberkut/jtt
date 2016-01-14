@@ -12,6 +12,7 @@ public class Task {
 	private String urlParent;
 	private String description = "";
 	private long timeEstimated;
+	private long timeRemaining;
 	private String logWorkH = "";
 	private String projectName = "";
 	private String status = "";
@@ -117,6 +118,14 @@ public class Task {
 
 	public void setTimeEstimated(long timeEstimated) {
 		this.timeEstimated = timeEstimated;
+	}
+
+	public long getTimeRemaining() {
+		return timeRemaining;
+	}
+
+	public void setTimeRemaining(long timeRemaining) {
+		this.timeRemaining = timeRemaining;
 	}
 
 	/**

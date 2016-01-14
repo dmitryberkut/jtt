@@ -47,6 +47,9 @@ import com.dbfs.jtt.model.Task;
 import com.dbfs.jtt.swt.HeadComposite;
 import com.dbfs.jtt.swt.TasksComposite;
 import com.dbfs.jtt.util.LogManager;
+import com.eclipsesource.ui.partblockmonitor.internal.IResponsiveRunner;
+import com.eclipsesource.ui.partblockmonitor.internal.NiftyProgress;
+import com.eclipsesource.ui.partblockmonitor.internal.TransparentUIBlocker;
 
 public class TasksView extends ViewPart {
 	private final Logger logger = Logger.getLogger(TasksView.class.getName());
@@ -85,14 +88,6 @@ public class TasksView extends ViewPart {
 		projects = SOAPSession.getInstance().getProjects();
 		userName = SOAPSession.getInstance().getConnectionDetails().getUser();
 		dailyTotalCounter.setUserName(userName);
-
-		queue = new ConcurrentLinkedQueue<Task>(tasks);
-		for (int i = 0; i < NUM_OF_UPDATE_THREADS; i++) {
-			Job job = new UpdateTasksJob("Update issues " + i);
-			job.schedule(/*i * 100*/);
-		}
-		syncJob = new SyncJob("SyncJob");
-		syncJob.schedule();
 	}
 
 	private class SyncJob extends Job {
@@ -104,7 +99,12 @@ public class TasksView extends ViewPart {
 		@Override
 		protected IStatus run(IProgressMonitor monitor) {
 			try {
-				Thread.sleep(SYNC_PAUSE);
+				for (int i = 0; i < SYNC_PAUSE; i++) {
+					if (!isSync) {
+						break;
+					}
+					Thread.sleep(1);
+				}
 			} catch (Exception e) {
 				logger.debug(e.getMessage());
 				LogManager.logStack(e);
@@ -117,6 +117,9 @@ public class TasksView extends ViewPart {
 					LogManager.log(Level.INFO, "SyncJob", "Issues in Jira/Client app: " + searchResult.getTotal() + "/" + tasks.size());
 					logger.debug("Issues in Jira/Client app: " + searchResult.getTotal() + "/" + tasks.size());
 					for (BasicIssue bIssue : searchResult.getIssues()) {
+						if (!isSync) {
+							break;
+						}
 						boolean isFound = false;
 						for (Task task : tasks) {
 							if (!task.getKey().isEmpty() && task.getKey().equalsIgnoreCase(bIssue.getKey())) {
@@ -140,7 +143,12 @@ public class TasksView extends ViewPart {
 					LogManager.logStack(e);
 				}
 				try {
-					Thread.sleep(SYNC_PAUSE);
+					for (int i = 0; i < SYNC_PAUSE; i++) {
+						if (!isSync) {
+							break;
+						}
+						Thread.sleep(1);
+					}
 				} catch (Exception e) {
 					logger.debug(e.getMessage());
 					LogManager.logStack(e);
@@ -151,34 +159,10 @@ public class TasksView extends ViewPart {
 
 	}
 
-	private class UpdateTasksJob extends Job {
-
-		public UpdateTasksJob(String name) {
-			super(name);
-		}
-
-		@Override
-		protected IStatus run(IProgressMonitor monitor) {
-			Display.getDefault().asyncExec(new Runnable() {
-				@Override
-				public void run() {
-					if (indx == 0) {
-						progressBar.setMinimum(0);
-						progressBar.setMaximum(tasks.size());
-						progressBar.setVisible(true);
-						slider.setEnabled(false);
-					}
-				}
-			});
-			updateTask(queue);
-			return Status.OK_STATUS;
-		}
-
-	}
-
-	private void updateTask(Queue<Task> queue) {
+	private void updateTask(IProgressMonitor monitor) {
 		final Task task = queue.poll();
 		if (task != null) {
+			monitor.setTaskName(task.getKey());
 			SOAPSession.getInstance().updateTaskFromJira(task);
 			Display.getDefault().asyncExec(new Runnable() {
 				@Override
@@ -188,16 +172,10 @@ public class TasksView extends ViewPart {
 					int taskIndx = tasksComposite.getTaskIndx(task);
 					tasksComposite.resizeTaskItem(taskIndx);
 					tasksComposite.drawItem(taskIndx);
-					if (indx >= tasks.size()) {
-						progressBar.setVisible(false);
-						slider.setEnabled(true);
-						indx = 0;
-						fillPrjFilterCompo();
-						fillStatusesFilterCompo();
-					}
 				}
 			});
-			updateTask(queue);
+			monitor.worked(5);
+			updateTask(monitor);
 		}
 	}
 
@@ -380,13 +358,13 @@ public class TasksView extends ViewPart {
 			}
 		});
 		final Shell shell = parent.getShell();
-		alpha = shell.getAlpha();
+		// alpha = shell.getAlpha();
 		shell.addShellListener(new ShellListener() {
 
 			@Override
 			public void shellActivated(ShellEvent event) {
 				LogManager.log(Level.INFO, "TasksView", "activate with alpha: " + alpha);
-				shell.setAlpha(alpha);
+				// shell.setAlpha(alpha);
 			}
 
 			@Override
@@ -401,7 +379,7 @@ public class TasksView extends ViewPart {
 			@Override
 			public void shellDeactivated(ShellEvent arg0) {
 				LogManager.log(Level.INFO, "TasksView", "Deactivate with alpha: " + alpha);
-				shell.setAlpha(alpha - 150);
+				// shell.setAlpha(alpha - 150);
 			}
 
 			@Override
@@ -414,6 +392,66 @@ public class TasksView extends ViewPart {
 				LogManager.log(Level.INFO, "TasksView", "Iconified");
 			}
 		});
+
+		queue = new ConcurrentLinkedQueue<Task>(tasks);
+		startStop(true);
+		TransparentUIBlocker tBlocker = new TransparentUIBlocker(tasksComposite, false);
+		for (int i = 0; i < NUM_OF_UPDATE_THREADS; i++) {
+			/*Job job = new UpdateTasksJob("Update issues " + i);
+			job.schedule();*/
+			new NiftyProgress(rr, tBlocker).run();
+		}
+		syncJob = new SyncJob("SyncJob");
+		syncJob.schedule();
+	}
+
+	IResponsiveRunner rr = new IResponsiveRunner() {
+		@Override
+		public void runOutsideUIThread(final IProgressMonitor monitor) {
+			monitor.beginTask("Update issues", tasks.size());
+			updateTask(monitor);
+			if (indx >= tasks.size()) {
+				monitor.done();
+			}
+		}
+
+		@Override
+		public void handleException(Exception caught) {
+		}
+
+		@Override
+		public void uiFeedbackAfterRun() {
+			if (indx >= tasks.size()) {
+				startStop(false);
+			}
+			tasksComposite.update(tasks);
+			tasksComposite.redraw();
+		}
+	};
+
+	/*private class UpdateTasksJob extends Job {
+		public UpdateTasksJob(String name) {
+			super(name);
+		}
+
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+			updateTask(monitor);
+			return Status.OK_STATUS;
+		}
+	}*/
+
+	private void startStop(boolean isStart) {
+		progressBar.setVisible(isStart);
+		slider.setEnabled(!isStart);
+		if (isStart) {
+			progressBar.setMinimum(0);
+			progressBar.setMaximum(tasks.size());
+		} else {
+			indx = 0;
+			fillPrjFilterCompo();
+			fillStatusesFilterCompo();
+		}
 	}
 
 	@Override
