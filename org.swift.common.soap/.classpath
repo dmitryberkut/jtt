@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
+	<classpathentry exported="true" kind="lib" path="jira-soap-5.0.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/axis-1.4.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/avalon-framework-4.1.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/axis-jaxrpc-1.4.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/axis-saaj-1.4.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/axis-wsdl4j-1.5.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/commons-discovery-0.2.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/commons-logging-1.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/jira-soap-5.0.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/log4j-1.2.12.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/logkit-1.0.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/servlet-api-2.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/log4jproperties.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>
