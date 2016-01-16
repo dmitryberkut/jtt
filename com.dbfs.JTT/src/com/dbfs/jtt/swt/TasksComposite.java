@@ -1050,7 +1050,7 @@ public class TasksComposite extends Composite {
 		return -1;
 	}
 
-	public void drawItem(int indx) {
+	public synchronized void drawItem(int indx) {
 		if ((tasks.size() == 0) || (taskItems.size() == 0) || ((taskItems.get(indx).getItemY() + ITEM_HEIGHT) <= scroll) || (taskItems.get(indx).getItemY() >= (scroll + heightComposite))) {
 			return;
 		}
@@ -1131,7 +1131,7 @@ public class TasksComposite extends Composite {
 		}
 
 		drawLink(indx);
-		drawTimeEstimation(indx);
+		drawEstimationTime(indx);
 		Rectangle rect = tCompGC.getClipping();
 		int prevClippingWidth = rect.width;
 		tCompGC.setFont(descFont);
@@ -1159,7 +1159,7 @@ public class TasksComposite extends Composite {
 		logger.debug("redraw(leftOffset[" + leftOffset + "], (taskItems.get(" + indx + ").getItemY())[" + taskItems.get(indx).getItemY() + "] - scroll[" + scroll + "], widthComposite[" + widthComposite + "], ITEM_HEIGHT[" + ITEM_HEIGHT + "] + 1, false);");
 	}
 
-	private void drawTimeEstimation(int indx) {
+	private void drawEstimationTime(int indx) {
 		tCompGC.setFont(loggedTimeFont);
 		int startY = -4;
 		int startX = 0;
@@ -1191,12 +1191,12 @@ public class TasksComposite extends Composite {
 		String remTime2 = Task.millisecondsToDHM(tasks.get(indx).getTimeRemaining());
 		String spTime1 = "Logged:";
 		String spTime2 = (tasks.get(indx).getFormatedTimeSpent() != null ? tasks.get(indx).getFormatedTimeSpent() : Task.millisecondsToDHM(tasks.get(indx).getTimeSpent()));
-		int estWidth = 0;
+		int estimationWordWidth = 0;
 		int x = 0;
 		for (int i = 0; i < estTime1.length(); i++) {
 			x += tCompGC.getCharWidth(estTime1.charAt(i));
 		}
-		estWidth = x + 9;
+		estimationWordWidth = x + 9;
 
 		int offsetX = 20;
 		// Offset for shifted item task
@@ -1205,30 +1205,43 @@ public class TasksComposite extends Composite {
 		}
 		// Draw mini diagram for child task
 		if (tasks.get(indx).getParentKey() != null) {
+			int estimationTimeWidth = 0;
+			for (int i = 0; i < estTime2.length(); i++) {
+				estimationTimeWidth += tCompGC.getCharWidth(estTime2.charAt(i));
+			}
+			estimationTimeWidth += tCompGC.getCharWidth('h') * 2;// it's because 'Space' symbols have no width.
+
 			tCompGC.setForeground(ColorSchemes.taskMiniBtnBorderColor);
 			startY = SUB_ITEM_HEIGHT + 5;
 			// startX = SUB_ITEM_OFFSET_X;
 
-			int x1 = linkX + startX + taskItems.get(indx).getLinkWidth() + offsetX;
+			int x1 = linkX + startX + taskItems.get(indx).getLinkWidth() + offsetX + estimationWordWidth;
 			int ye = (taskItems.get(indx).getLinkY() + startY) - scroll;
 			int yr = (taskItems.get(indx).getLinkY() + startY + LOG_WORK_HEIGHT_DIAGRAM) - scroll;
-			tCompGC.fillRectangle(x1 + estWidth, ye, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
-			tCompGC.fillRectangle(x1 + estWidth, yr, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.fillRectangle(x1, ye, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.fillRectangle(x1, yr, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
 
+			int estimationDiagramWidth = estimatedWidth;
+			int remainingDiagramX = logggggedWidth;
+			if ((remainingPart > 0) && (loggedPart > 0)) {
+				remainingDiagramX += 1;
+				estimationDiagramWidth = remainingWidth + logggggedWidth + 1;
+			}
 			// Draw blue estimated rectangle
 			tCompGC.setBackground(ColorSchemes.EstimatedTaskColor);
-			tCompGC.fillRectangle(x1 + estWidth, ye, estimatedWidth, LOG_WORK_HEIGHT_DIAGRAM);
-			tCompGC.drawRectangle(x1 + estWidth, ye, estimatedWidth, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.fillRectangle(x1, ye, estimationDiagramWidth, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.drawRectangle(x1, ye, estimationDiagramWidth, LOG_WORK_HEIGHT_DIAGRAM);
 			// Draw orange remaining rectangle
 			tCompGC.setBackground(ColorSchemes.RemainingTaskColor);
-			tCompGC.fillRectangle(x1 + estWidth + logggggedWidth, yr, remainingWidth, LOG_WORK_HEIGHT_DIAGRAM);
-			tCompGC.drawRectangle(x1 + estWidth + logggggedWidth, yr, remainingWidth, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.fillRectangle(x1 + remainingDiagramX, yr, remainingWidth, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.drawRectangle(x1 + remainingDiagramX, yr, remainingWidth, LOG_WORK_HEIGHT_DIAGRAM);
 			// Draw green logged rectangle
 			tCompGC.setBackground(ColorSchemes.LoggedTaskColor);
-			tCompGC.fillRectangle(x1 + estWidth, yr, logggggedWidth, LOG_WORK_HEIGHT_DIAGRAM);
-			tCompGC.drawRectangle(x1 + estWidth, yr, logggggedWidth, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.fillRectangle(x1, yr, logggggedWidth, LOG_WORK_HEIGHT_DIAGRAM);
+			tCompGC.drawRectangle(x1, yr, logggggedWidth, LOG_WORK_HEIGHT_DIAGRAM);
 
-			tCompGC.drawText(percent + "%", x1 + estWidth + LOG_WORK_WIDTH_DIAGRAM + 5, ye, true);
+			tCompGC.drawText(percent + "%", x1 + LOG_WORK_WIDTH_DIAGRAM + 5, ye, true);
+			tCompGC.drawText(estTime2, x1 - estimationTimeWidth, ye, true);
 			return;
 		}
 
@@ -1237,25 +1250,25 @@ public class TasksComposite extends Composite {
 		int ye = taskItems.get(indx).getLinkY() - scroll;
 		int yr = (taskItems.get(indx).getLinkY() + tCompGC.getFontMetrics().getHeight()) - 4 - scroll;
 		int yl = (taskItems.get(indx).getLinkY() + (tCompGC.getFontMetrics().getHeight() * 2)) - 8 - scroll;
-		tCompGC.fillRectangle(x1 + estWidth, ye, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
-		tCompGC.fillRectangle(x1 + estWidth, yr, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
-		tCompGC.fillRectangle(x1 + estWidth, yl, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
+		tCompGC.fillRectangle(x1 + estimationWordWidth, ye, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
+		tCompGC.fillRectangle(x1 + estimationWordWidth, yr, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
+		tCompGC.fillRectangle(x1 + estimationWordWidth, yl, LOG_WORK_WIDTH_DIAGRAM, LOG_WORK_HEIGHT_DIAGRAM);
 
 		// Draw blue estimated rectangle
 		tCompGC.setBackground(ColorSchemes.EstimatedTaskColor);
-		tCompGC.fillRectangle(x1 + estWidth, ye, estimatedWidth, LOG_WORK_HEIGHT_DIAGRAM);
+		tCompGC.fillRectangle(x1 + estimationWordWidth, ye, estimatedWidth, LOG_WORK_HEIGHT_DIAGRAM);
 		// Draw orange remaining rectangle
 		tCompGC.setBackground(ColorSchemes.RemainingTaskColor);
-		tCompGC.fillRectangle(x1 + estWidth + logggggedWidth, yr, remainingWidth, LOG_WORK_HEIGHT_DIAGRAM);
+		tCompGC.fillRectangle(x1 + estimationWordWidth + logggggedWidth, yr, remainingWidth, LOG_WORK_HEIGHT_DIAGRAM);
 		// Draw green logged rectangle
 		tCompGC.setBackground(ColorSchemes.LoggedTaskColor);
-		tCompGC.fillRectangle(x1 + estWidth, yl, logggggedWidth, LOG_WORK_HEIGHT_DIAGRAM);
+		tCompGC.fillRectangle(x1 + estimationWordWidth, yl, logggggedWidth, LOG_WORK_HEIGHT_DIAGRAM);
 		// Draw text Estimated
 		tCompGC.drawText(estTime1, x1, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
-		tCompGC.drawText(estTime2, x1 + estWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
+		tCompGC.drawText(estTime2, x1 + estimationWordWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
 		// Draw text Remaining
 		tCompGC.drawText(remTime1, x1, (taskItems.get(indx).getLinkY() + startY + tCompGC.getFontMetrics().getHeight()) - 4 - scroll, true);
-		tCompGC.drawText(remTime2, x1 + estWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY + tCompGC.getFontMetrics().getHeight()) - 4 - scroll, true);
+		tCompGC.drawText(remTime2, x1 + estimationWordWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY + tCompGC.getFontMetrics().getHeight()) - 4 - scroll, true);
 
 		// tCompGC.drawText("Current Spent: " + TimeUnit.MILLISECONDS.toMinutes(tasks.get(indx).getCurrentTimeSpent()) + "m", linkX + startX + taskItems.get(indx).getLinkWidth() + 20 + estWidth, (taskItems.get(indx).getLinkY() + startY) - scroll, true);
 		if ((tasks.get(indx).getTimeSpent() - tasks.get(indx).getTimeEstimated()) > 0) {
@@ -1266,7 +1279,7 @@ public class TasksComposite extends Composite {
 			}
 		}
 		tCompGC.drawText(spTime1, x1, (taskItems.get(indx).getLinkY() + startY + (tCompGC.getFontMetrics().getHeight() * 2)) - 8 - scroll, true);
-		tCompGC.drawText(spTime2, x1 + estWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY + (tCompGC.getFontMetrics().getHeight() * 2)) - 8 - scroll, true);
+		tCompGC.drawText(spTime2, x1 + estimationWordWidth + LOG_WORK_WIDTH_DIAGRAM + 5, (taskItems.get(indx).getLinkY() + startY + (tCompGC.getFontMetrics().getHeight() * 2)) - 8 - scroll, true);
 		redraw(linkX + taskItems.get(indx).getLinkWidth() + 10, taskItems.get(indx).getLinkY() - scroll, btnTimerX - LOG_WORK_OFFSET - LOG_WORK_WIDTH - taskItems.get(indx).getLinkWidth(), linkHeight + standardTextHeight, false);
 	}
 

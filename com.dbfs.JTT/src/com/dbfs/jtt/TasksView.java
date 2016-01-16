@@ -48,6 +48,7 @@ import com.eclipsesource.ui.partblockmonitor.internal.NiftyProgress;
 import com.eclipsesource.ui.partblockmonitor.internal.TransparentUIBlocker;
 
 public class TasksView extends ViewPart {
+	private static final String FEEDBACK_LINK = "https://github.com/dmitryberkut/jtt/issues";
 	private final Logger logger = Logger.getLogger(TasksView.class.getName());
 	public static final String ID = "com.dbfs.JTT.views.tasks";
 	private List<Task> tasks;
@@ -63,14 +64,14 @@ public class TasksView extends ViewPart {
 	private ProgressBar progressBar;
 	public static final ExecutorService pool = Executors.newCachedThreadPool();
 	private int indx;
-	private Queue<Task> queue;
+	private Queue<Task> taskPool;
 	private Slider slider;
 	private final int NUM_OF_UPDATE_THREADS = 7;
 	private final int SYNC_PAUSE = 60000;
 	private final boolean isSync = true;
 	private Job syncJob;
 	private int alpha;
-	private static final String FEEDBACK_LINK = "https://github.com/dmitryberkut/jtt/issues";
+	TransparentUIBlocker uiBlocker;
 
 	public TasksView() {
 		super();
@@ -155,10 +156,9 @@ public class TasksView extends ViewPart {
 
 	}
 
-	private void updateTask(IProgressMonitor monitor) {
-		final Task task = queue.poll();
+	private void updateTask(final IProgressMonitor monitor) {
+		final Task task = taskPool.poll();
 		if (task != null) {
-			monitor.setTaskName(task.getKey());
 			SOAPSession.getInstance().updateTaskFromJira(task);
 			Display.getDefault().asyncExec(new Runnable() {
 				@Override
@@ -166,14 +166,22 @@ public class TasksView extends ViewPart {
 					if (progressBar.isDisposed() || tasksComposite.isDisposed()) {
 						return;
 					}
+					monitor.setTaskName(task.getKey());
 					progressBar.setSelection(indx++);
 					progressBar.setToolTipText(indx + " / " + tasks.size());
 					int taskIndx = tasksComposite.getTaskIndx(task);
 					tasksComposite.resizeTaskItem(taskIndx);
 					tasksComposite.drawItem(taskIndx);
+					monitor.worked(1);
+
+					if (indx >= tasks.size()) {
+						startStop(false);
+						tasksComposite.update(tasks);
+						tasksComposite.redraw();
+						uiBlocker.releaseUIComponents();
+					}
 				}
 			});
-			monitor.worked(5);
 			updateTask(monitor);
 		}
 	}
@@ -392,13 +400,14 @@ public class TasksView extends ViewPart {
 			}
 		});*/
 
-		queue = new ConcurrentLinkedQueue<Task>(tasks);
+		taskPool = new ConcurrentLinkedQueue<Task>(tasks);
 		startStop(true);
-		TransparentUIBlocker tBlocker = new TransparentUIBlocker(tasksComposite, false);
+		uiBlocker = new TransparentUIBlocker(tasksComposite, false);
 		for (int i = 0; i < NUM_OF_UPDATE_THREADS; i++) {
 			/*Job job = new UpdateTasksJob("Update issues " + i);
 			job.schedule();*/
-			new NiftyProgress(rr, tBlocker).run();
+			NiftyProgress updateTaskThread = new NiftyProgress(rr, uiBlocker);
+			updateTaskThread.run();
 		}
 		syncJob = new SyncJob("SyncJob");
 		syncJob.schedule();
@@ -409,9 +418,9 @@ public class TasksView extends ViewPart {
 		public void runOutsideUIThread(final IProgressMonitor monitor) {
 			monitor.beginTask("Update issues", tasks.size());
 			updateTask(monitor);
-			if (indx >= tasks.size()) {
-				monitor.done();
-			}
+			/*if (indx >= tasks.size()) {
+				// monitor.done();
+			}*/
 		}
 
 		@Override
@@ -420,11 +429,6 @@ public class TasksView extends ViewPart {
 
 		@Override
 		public void uiFeedbackAfterRun() {
-			if (indx >= tasks.size()) {
-				startStop(false);
-			}
-			tasksComposite.update(tasks);
-			tasksComposite.redraw();
 		}
 	};
 

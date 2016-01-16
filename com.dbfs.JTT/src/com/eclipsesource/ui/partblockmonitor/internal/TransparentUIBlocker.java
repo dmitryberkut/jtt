@@ -140,6 +140,7 @@ public class TransparentUIBlocker implements IUIBlocker {
 	private final Control parent;
 	private Shell shell;
 	private final boolean cancellable;
+	private IProgressMonitor monitor;
 
 	/**
 	 * Creates a new instance that blocks the given control by displaying a transparent shell with
@@ -164,6 +165,9 @@ public class TransparentUIBlocker implements IUIBlocker {
 
 	@Override
 	public void blockUIComponents() {
+		if (shell != null) {
+			return;
+		}
 		shell = new Shell( parent.getDisplay(), SWT.ON_TOP
 				| SWT.MODELESS
 				| SWT.NO_FOCUS );
@@ -206,10 +210,10 @@ public class TransparentUIBlocker implements IUIBlocker {
 		};
 		parent.addDisposeListener( disposer );
 		shell.addDisposeListener( disposer );
+		monitor = buildMonitor();
 	}
 
-	@Override
-	public IProgressMonitor getMonitor() {
+	private IProgressMonitor buildMonitor() {
 		Composite parent = new Composite( shell, SWT.NONE );
 		parent.setLayoutData( new GridData( SWT.CENTER, SWT.CENTER, true, true ) );
 		shell.setLayout( new GridLayout( 1, false ) );
@@ -231,18 +235,24 @@ public class TransparentUIBlocker implements IUIBlocker {
 		progressBar.setLayoutData( new GridData( SWT.CENTER, SWT.CENTER, false, false) );
 		cancel.setLayoutData( new GridData(SWT.CENTER, SWT.CENTER, false, false) );
 		shell.layout();
-		final ProgressMonitor result = new ProgressMonitor( progressBar, label );
+		final ProgressMonitor monitor = new ProgressMonitor(progressBar, label);
 		cancel.addSelectionListener( new SelectionAdapter() {
 			@Override
 			public void widgetSelected( SelectionEvent e ) {
-				result.setCanceled( true );
+				monitor.setCanceled(true);
 			}
 		});
-		return result;
+		return monitor;
+	}
+
+	@Override
+	public IProgressMonitor getMonitor() {
+		return monitor;
 	}
 
 	@Override
 	public void releaseUIComponents() {
+		monitor.done();
 		shell.dispose();
 	}
 
